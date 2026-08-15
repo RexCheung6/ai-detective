@@ -16,7 +16,7 @@ jobs:
         with:
           node-version: 22
       - run: npm ci
-      - run: npx electron-builder --win --x64
+      - run: npx electron-builder --win --x64 --publish never
       - uses: actions/upload-artifact@v4
         with:
           name: windows-exe
@@ -33,7 +33,7 @@ jobs:
         with:
           node-version: 22
       - run: npm ci
-      - run: npx electron-builder --mac --x64 --arm64
+      - run: npx electron-builder --mac --x64 --arm64 --publish never
       - uses: actions/upload-artifact@v4
         with:
           name: macos-dmg
@@ -52,7 +52,7 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 17
+          java-version: 21
       - name: Install Capacitor
         run: |
           npm ci

@@ -1,0 +1,469 @@
+[2026-08-15 14:31:16] ⚠️ 尚未获取到隧道 URL
+2026-08-15T06:31:16Z INF Thank you for trying Cloudflare Tunnel. Doing so, without a Cloudflare account, is a quick way to experiment and try it out. However, be aware that these account-less Tunnels have no uptime guarantee, are subject to the Cloudflare Online Services Terms of Use (https://www.cloudflare.com/website-terms/), and Cloudflare reserves the right to investigate your use of Tunnels for violations of such terms. If you intend to use Tunnels in production you should use a pre-created named tunnel by following: https://developers.cloudflare.com/cloudflare-one/connections/connect-apps
+2026-08-15T06:31:16Z INF Requesting new quick Tunnel on trycloudflare.com...
+2026-08-15T06:31:20Z INF +--------------------------------------------------------------------------------------------+
+2026-08-15T06:31:20Z INF |  Your quick Tunnel has been created! Visit it at (it may take some time to be reachable):  |
+2026-08-15T06:31:20Z INF |  https://human-away-local-cash.trycloudflare.com                                           |
+2026-08-15T06:31:20Z INF +--------------------------------------------------------------------------------------------+
+2026-08-15T06:31:20Z INF Cannot determine default configuration path. No file [config.yml config.yaml] in [~/.cloudflared ~/.cloudflare-warp ~/cloudflare-warp /etc/cloudflared /usr/local/etc/cloudflared]
+2026-08-15T06:31:20Z INF Version 2026.8.2 (Checksum b61054d3d6326ea558cb49826eebf5676e0d0a36d51b546975096ca3e0e3c89d)
+2026-08-15T06:31:20Z INF GOOS: darwin, GOVersion: go1.26.2, GoArch: arm64
+2026-08-15T06:31:20Z INF Settings: map[ha-connections:1 no-autoupdate:true protocol:quic url:http://localhost:1234]
+2026-08-15T06:31:20Z INF Generated Connector ID: 0910f48a-9fb1-4c01-8bcc-81d8da7c0ef8
+2026-08-15T06:31:20Z INF Initial protocol quic
+2026-08-15T06:31:20Z INF ICMP proxy will use 192.168.8.107 as source for IPv4
+2026-08-15T06:31:20Z INF ICMP proxy will use fe80::421:8f45:8141:666 in zone en0 as source for IPv6
+2026-08-15T06:31:20Z INF Created ICMP proxy listening on 192.168.8.107:0
+2026-08-15T06:31:20Z INF ICMP proxy will use 192.168.8.107 as source for IPv4
+2026-08-15T06:31:20Z INF ICMP proxy will use fe80::421:8f45:8141:666 in zone en0 as source for IPv6
+2026-08-15T06:31:20Z INF Starting metrics server on 127.0.0.1:20241/metrics
+2026-08-15T06:31:21Z INF Tunnel connection curve preferences: [X25519MLKEM768 CurveID(65074) CurveP256] connIndex=0 event=0 ip=198.41.192.47
+2026-08-15T06:31:22Z INF Registered tunnel connection connIndex=0 connection=4ee4f438-f27e-444b-b294-a67032dc75ae event=0 ip=198.41.192.47 location=lax11 protocol=quic
+2026-08-15T06:31:28Z INF +-------------------------------------------------------------------------------------+
+2026-08-15T06:31:28Z INF |                               CONNECTIVITY PRE-CHECKS                               |
+2026-08-15T06:31:28Z INF +-------------------------------------------------------------------------------------+
+2026-08-15T06:31:28Z INF |  COMPONENT         TARGET                     STATUS  DETAILS                       |
+2026-08-15T06:31:28Z INF |  DNS Resolution    region1.v2.argotunnel.com  PASS    DNS Resolved successfully     |
+2026-08-15T06:31:28Z INF |  DNS Resolution    region2.v2.argotunnel.com  PASS    DNS Resolved successfully     |
+2026-08-15T06:31:28Z INF |  UDP Connectivity  region1.v2.argotunnel.com  PASS    QUIC connection successful    |
+2026-08-15T06:31:28Z INF |  UDP Connectivity  region2.v2.argotunnel.com  PASS    QUIC connection successful    |
+2026-08-15T06:31:28Z INF |  TCP Connectivity  region1.v2.argotunnel.com  PASS    HTTP/2 connection successful  |
+2026-08-15T06:31:28Z INF |  TCP Connectivity  region2.v2.argotunnel.com  PASS    HTTP/2 connection successful  |
+2026-08-15T06:31:28Z INF |  Cloudflare API    api.cloudflare.com:443     PASS    API is reachable              |
+2026-08-15T06:31:28Z INF |                                                                                     |
+2026-08-15T06:31:28Z INF |  SUMMARY: Environment is healthy. cloudflared will use 'quic' as primary protocol.  |
+2026-08-15T06:31:28Z INF +-------------------------------------------------------------------------------------+
+2026-08-15T06:31:28Z INF precheck component="DNS Resolution" details="DNS Resolved successfully" run_id=4136593e-31c3-4729-b68a-8e51841acc98 status=pass target=region1.v2.argotunnel.com
+2026-08-15T06:31:28Z INF precheck component="DNS Resolution" details="DNS Resolved successfully" run_id=4136593e-31c3-4729-b68a-8e51841acc98 status=pass target=region2.v2.argotunnel.com
+2026-08-15T06:31:28Z INF precheck component="UDP Connectivity" details="QUIC connection successful" run_id=4136593e-31c3-4729-b68a-8e51841acc98 status=pass target=region1.v2.argotunnel.com
+2026-08-15T06:31:28Z INF precheck component="UDP Connectivity" details="QUIC connection successful" run_id=4136593e-31c3-4729-b68a-8e51841acc98 status=pass target=region2.v2.argotunnel.com
+2026-08-15T06:31:28Z INF precheck component="TCP Connectivity" details="HTTP/2 connection successful" run_id=4136593e-31c3-4729-b68a-8e51841acc98 status=pass target=region1.v2.argotunnel.com
+2026-08-15T06:31:28Z INF precheck component="TCP Connectivity" details="HTTP/2 connection successful" run_id=4136593e-31c3-4729-b68a-8e51841acc98 status=pass target=region2.v2.argotunnel.com
+2026-08-15T06:31:28Z INF precheck component="Cloudflare API" details="API is reachable" run_id=4136593e-31c3-4729-b68a-8e51841acc98 status=pass target=api.cloudflare.com:443
+2026-08-15T06:31:28Z INF precheck complete hard_fail=false run_id=4136593e-31c3-4729-b68a-8e51841acc98 suggested_protocol=quic
+[2026-08-15 14:31:37] 🔄 隧道 URL 变化: https://compensation-characterized-lauren-own.trycloudflare.com → https://human-away-local-cash.trycloudflare.com
+[2026-08-15 14:31:37]   更新 Netlify LM_BASE_URL…
+Set environment variable LM_BASE_URL=https://human-away-local-cash.trycloudflare.com/v1 in the all context
+Changes will require a redeploy to take effect on any deployed versions of your project.
+[2026-08-15 14:31:42]   重新部署…
+ ›   Warning: --build is now the default and can safely be omitted.
+No project linked. Auto-creating a new project (team: rexcheung10’s team)...
+Creating new site with random name
+​
+Netlify Build                                                 
+────────────────────────────────────────────────────────────────
+​
+❯ Version
+  @netlify/build 36.3.5
+​
+❯ Flags
+  deployId: 6a8007d3315c538423f9967e
+​
+❯ Current directory
+  /Users/rc/ai-detective
+​
+❯ Config file
+  No config file was defined: using default values.
+​
+❯ Context
+  production
+
+Deploying to Netlify
+────────────────────────────────────────────────────────────────
+
+Deploy path: /Users/rc/ai-detective
+
+⠋ Uploading blobs to deploy store...
+
+✔ Finished uploading blobs to deploy store
+⠋ Hashing files...
+⠋ Looking for a functions cache...
+✔ Ignoring functions cache (use without --skip-functions-cache to change)
+✔ Finished hashing 
+⠋ CDN diffing files...
+✔ CDN requesting 4 files and 0 edge functions
+⠋ Uploading 4 files
+ ›   Warning: JSONHTTPError: no records matched 422
+ ›   Warning: 
+{
+  "name": "JSONHTTPError",
+  "status": 422,
+  "json": {
+    "code": 422,
+    "message": "no records matched"
+  }
+}
+
+​
+Internal error during "options.onPostBuild"                   
+────────────────────────────────────────────────────────────────
+​
+  Error message
+  JSONHTTPError: Unprocessable Entity
+​
+  Error location
+  During options.onPostBuild
+      at parseResponse (file:///Users/rc/.local/lib/node_modules/netlify-cli/node_modules/@netlify/api/lib/methods/response.js:34:39)
+      at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+      at async callMethod (file:///Users/rc/.local/lib/node_modules/netlify-cli/node_modules/@netlify/api/lib/methods/index.js:26:28)
+      at async tryUpload (file:///Users/rc/.local/lib/node_modules/netlify-cli/dist/utils/deploy/upload-files.js:91:29)
+​
+  Error properties
+  {
+    name: [32m'JSONHTTPError'[39m,
+    status: [33m422[39m,
+    json: { code: [33m422[39m, message: [32m'no records matched'[39m }
+  }
+​
+  Resolved config
+  build:
+    publish: /Users/rc/ai-detective
+    publishOrigin: default
+ ›   Error: Error while running build
+[2026-08-15 14:31:55] ✅ Netlify 已同步新隧道地址
+[2026-08-15 14:32:16] 🔄 隧道 URL 变化:  → https://human-away-local-cash.trycloudflare.com
+[2026-08-15 14:32:16]   更新 Netlify LM_BASE_URL…
+Set environment variable LM_BASE_URL=https://human-away-local-cash.trycloudflare.com/v1 in the all context
+Changes will require a redeploy to take effect on any deployed versions of your project.
+[2026-08-15 14:32:23]   重新部署…
+ ›   Warning: --build is now the default and can safely be omitted.
+​
+Netlify Build                                                 
+────────────────────────────────────────────────────────────────
+​
+❯ Version
+  @netlify/build 36.3.5
+​
+❯ Flags
+  deployId: 6a8007fbc5eb6a172e2258c1
+​
+Configuration error                                           
+────────────────────────────────────────────────────────────────
+​
+  Error message
+  Failed retrieving site data for site ai-detective-game-828: Not Found. Double-check your login status with 'netlify status' or contact support with details of your error.
+​
+ ›   Error: Error while running build
+[2026-08-15 14:32:28] ⚠️ Netlify 部署失败！请检查上方日志
+[2026-08-15 14:33:18] ✅ 隧道正常 (https://human-away-local-cash.trycloudflare.com)
+[2026-08-15 14:35:20] ✅ 隧道正常 (https://human-away-local-cash.trycloudflare.com)
+[2026-08-15 14:35:52] ✅ 隧道正常 (https://human-away-local-cash.trycloudflare.com)
+[2026-08-15 14:36:21] 🔄 隧道 URL 变化:  → https://human-away-local-cash.trycloudflare.com
+[2026-08-15 14:36:21]   更新 Netlify LM_BASE_URL…
+Set environment variable LM_BASE_URL=https://human-away-local-cash.trycloudflare.com/v1 in the all context
+Changes will require a redeploy to take effect on any deployed versions of your project.
+[2026-08-15 14:36:27]   重新部署…
+ ›   Warning: --build is now the default and can safely be omitted.
+​
+Netlify Build                                                 
+────────────────────────────────────────────────────────────────
+​
+❯ Version
+  @netlify/build 36.3.5
+​
+❯ Flags
+  deployId: 6a8008efc278576d76db624f
+​
+Configuration error                                           
+────────────────────────────────────────────────────────────────
+​
+  Error message
+  Failed retrieving site data for site ai-detective-game-828: Not Found. Double-check your login status with 'netlify status' or contact support with details of your error.
+​
+ ›   Error: Error while running build
+[2026-08-15 14:36:32] ⚠️ Netlify 部署失败！请检查上方日志
+[2026-08-15 14:37:21] 🔄 隧道 URL 变化:  → https://human-away-local-cash.trycloudflare.com
+[2026-08-15 14:37:21]   更新 Netlify LM_BASE_URL…
+/Users/rc/ai-detective/tunnel/check_tunnel.sh: line 70: netlify: command not found
+[2026-08-15 14:37:21]   重新部署…
+/Users/rc/ai-detective/tunnel/check_tunnel.sh: line 74: netlify: command not found
+[2026-08-15 14:37:21] ⚠️ Netlify 部署失败！请检查上方日志
+[2026-08-15 14:37:22] ✅ 隧道正常 (https://human-away-local-cash.trycloudflare.com)
+[2026-08-15 14:37:36] 🔄 隧道 URL 变化:  → https://human-away-local-cash.trycloudflare.com
+[2026-08-15 14:37:36]   更新 Netlify LM_BASE_URL…
+Set environment variable LM_BASE_URL=https://human-away-local-cash.trycloudflare.com/v1 in the all context
+Changes will require a redeploy to take effect on any deployed versions of your project.
+[2026-08-15 14:37:41]   重新部署…
+ ›   Warning: --build is now the default and can safely be omitted.
+​
+Netlify Build                                                 
+────────────────────────────────────────────────────────────────
+​
+❯ Version
+  @netlify/build 36.3.5
+​
+❯ Flags
+  accountId: 6a7b48c187b990520cface3f
+  deployId: 6a80093b590a64cab631a61d
+​
+❯ Current directory
+  /Users/rc/ai-detective
+​
+❯ Config file
+  No config file was defined: using default values.
+​
+❯ Context
+  production
+
+Deploying to Netlify
+────────────────────────────────────────────────────────────────
+
+Deploy path: /Users/rc/ai-detective
+
+⠋ Uploading blobs to deploy store...
+
+✔ Finished uploading blobs to deploy store
+⠋ Hashing files...
+⠋ Looking for a functions cache...
+✔ Ignoring functions cache (use without --skip-functions-cache to change)
+✔ Finished hashing 
+⠋ CDN diffing files...
+✔ CDN requesting 2 files and 0 edge functions
+⠋ Uploading 2 files
+ ›   Warning: JSONHTTPError: no records matched 422
+ ›   Warning: 
+{
+  "name": "JSONHTTPError",
+  "status": 422,
+  "json": {
+    "code": 422,
+    "message": "no records matched"
+  }
+}
+
+​
+Internal error during "options.onPostBuild"                   
+────────────────────────────────────────────────────────────────
+​
+  Error message
+  JSONHTTPError: Unprocessable Entity
+​
+  Error location
+  During options.onPostBuild
+      at parseResponse (file:///Users/rc/.local/lib/node_modules/netlify-cli/node_modules/@netlify/api/lib/methods/response.js:34:39)
+      at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+      at async callMethod (file:///Users/rc/.local/lib/node_modules/netlify-cli/node_modules/@netlify/api/lib/methods/index.js:26:28)
+      at async tryUpload (file:///Users/rc/.local/lib/node_modules/netlify-cli/dist/utils/deploy/upload-files.js:91:29)
+​
+  Error properties
+  {
+    name: [32m'JSONHTTPError'[39m,
+    status: [33m422[39m,
+    json: { code: [33m422[39m, message: [32m'no records matched'[39m }
+  }
+​
+  Resolved config
+  build:
+    publish: /Users/rc/ai-detective
+    publishOrigin: default
+ ›   Error: Error while running build
+[2026-08-15 14:37:53] ⚠️ Netlify 部署失败！请检查上方日志
+[2026-08-15 14:38:50] 🔄 隧道 URL 变化:  → https://human-away-local-cash.trycloudflare.com
+[2026-08-15 14:38:50]   更新 Netlify LM_BASE_URL…
+Set environment variable LM_BASE_URL=https://human-away-local-cash.trycloudflare.com/v1 in the all context
+Changes will require a redeploy to take effect on any deployed versions of your project.
+[2026-08-15 14:38:55]   重新部署…
+ ›   Warning: --build is now the default and can safely be omitted.
+​
+Netlify Build                                                 
+────────────────────────────────────────────────────────────────
+​
+❯ Version
+  @netlify/build 36.3.5
+​
+❯ Flags
+  accountId: 6a7b48c187b990520cface3f
+  deployId: 6a80098b50d23a45c0e8f29a
+​
+❯ Current directory
+  /Users/rc/ai-detective
+​
+❯ Config file
+  No config file was defined: using default values.
+​
+❯ Context
+  production
+
+Deploying to Netlify
+────────────────────────────────────────────────────────────────
+
+Deploy path: /Users/rc/ai-detective
+
+⠋ Uploading blobs to deploy store...
+
+✔ Finished uploading blobs to deploy store
+⠋ Hashing files...
+⠋ Looking for a functions cache...
+✔ Ignoring functions cache (use without --skip-functions-cache to change)
+✔ Finished hashing 
+⠋ CDN diffing files...
+✔ CDN requesting 2 files and 0 edge functions
+⠋ Uploading 2 files
+ ›   Warning: JSONHTTPError: no records matched 422
+ ›   Warning: 
+{
+  "name": "JSONHTTPError",
+  "status": 422,
+  "json": {
+    "code": 422,
+    "message": "no records matched"
+  }
+}
+
+​
+Internal error during "options.onPostBuild"                   
+────────────────────────────────────────────────────────────────
+​
+  Error message
+  JSONHTTPError: Unprocessable Entity
+​
+  Error location
+  During options.onPostBuild
+      at parseResponse (file:///Users/rc/.local/lib/node_modules/netlify-cli/node_modules/@netlify/api/lib/methods/response.js:34:39)
+      at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+      at async callMethod (file:///Users/rc/.local/lib/node_modules/netlify-cli/node_modules/@netlify/api/lib/methods/index.js:26:28)
+      at async tryUpload (file:///Users/rc/.local/lib/node_modules/netlify-cli/dist/utils/deploy/upload-files.js:91:29)
+​
+  Error properties
+  {
+    name: [32m'JSONHTTPError'[39m,
+    status: [33m422[39m,
+    json: { code: [33m422[39m, message: [32m'no records matched'[39m }
+  }
+​
+  Resolved config
+  build:
+    publish: /Users/rc/ai-detective
+    publishOrigin: default
+ ›   Error: Error while running build
+[2026-08-15 14:39:13] ⚠️ Netlify 部署失败！请检查上方日志
+[2026-08-15 14:39:24] ✅ 隧道正常 (https://human-away-local-cash.trycloudflare.com)
+2026-08-15T06:40:38Z INF Initiating graceful shutdown due to signal terminated ...
+2026-08-15T06:40:38Z ERR failed to run the datagram handler error="Application error 0x0 (remote)" connIndex=0 event=0 ip=198.41.192.47
+2026-08-15T06:40:38Z ERR failed to serve tunnel connection error="accept stream listener encountered a failure while serving" connIndex=0 event=0 ip=198.41.192.47
+2026-08-15T06:40:38Z ERR Serve tunnel error error="accept stream listener encountered a failure while serving" connIndex=0 event=0 ip=198.41.192.47
+2026-08-15T06:40:38Z INF Retrying connection in up to 1s connIndex=0 event=0 ip=198.41.192.47
+2026-08-15T06:40:38Z ERR Connection terminated connIndex=0
+2026-08-15T06:40:38Z ERR no more connections active and exiting
+2026-08-15T06:40:38Z INF Tunnel server stopped
+2026-08-15T06:40:38Z INF Metrics server stopped
+2026-08-15T06:40:38Z INF Thank you for trying Cloudflare Tunnel. Doing so, without a Cloudflare account, is a quick way to experiment and try it out. However, be aware that these account-less Tunnels have no uptime guarantee, are subject to the Cloudflare Online Services Terms of Use (https://www.cloudflare.com/website-terms/), and Cloudflare reserves the right to investigate your use of Tunnels for violations of such terms. If you intend to use Tunnels in production you should use a pre-created named tunnel by following: https://developers.cloudflare.com/cloudflare-one/connections/connect-apps
+2026-08-15T06:40:38Z INF Requesting new quick Tunnel on trycloudflare.com...
+[2026-08-15 14:40:39] ❌ 隧道探测失败 (HTTP 530)，尝试重启 cloudflared
+2026-08-15T06:40:48Z INF Thank you for trying Cloudflare Tunnel. Doing so, without a Cloudflare account, is a quick way to experiment and try it out. However, be aware that these account-less Tunnels have no uptime guarantee, are subject to the Cloudflare Online Services Terms of Use (https://www.cloudflare.com/website-terms/), and Cloudflare reserves the right to investigate your use of Tunnels for violations of such terms. If you intend to use Tunnels in production you should use a pre-created named tunnel by following: https://developers.cloudflare.com/cloudflare-one/connections/connect-apps
+2026-08-15T06:40:48Z INF Requesting new quick Tunnel on trycloudflare.com...
+2026-08-15T06:40:54Z INF +--------------------------------------------------------------------------------------------+
+2026-08-15T06:40:54Z INF |  Your quick Tunnel has been created! Visit it at (it may take some time to be reachable):  |
+2026-08-15T06:40:54Z INF |  https://sandra-fiction-thoroughly-phrase.trycloudflare.com                                |
+2026-08-15T06:40:54Z INF +--------------------------------------------------------------------------------------------+
+2026-08-15T06:40:54Z INF Cannot determine default configuration path. No file [config.yml config.yaml] in [~/.cloudflared ~/.cloudflare-warp ~/cloudflare-warp /etc/cloudflared /usr/local/etc/cloudflared]
+2026-08-15T06:40:54Z INF Version 2026.8.2 (Checksum b61054d3d6326ea558cb49826eebf5676e0d0a36d51b546975096ca3e0e3c89d)
+2026-08-15T06:40:54Z INF GOOS: darwin, GOVersion: go1.26.2, GoArch: arm64
+2026-08-15T06:40:54Z INF Settings: map[ha-connections:1 no-autoupdate:true protocol:quic url:http://localhost:1234]
+2026-08-15T06:40:54Z INF Generated Connector ID: 0c5514c6-6d40-4bc0-94c1-ed96d55e4a38
+2026-08-15T06:40:54Z INF Initial protocol quic
+2026-08-15T06:40:54Z INF ICMP proxy will use 192.168.8.107 as source for IPv4
+2026-08-15T06:40:54Z INF ICMP proxy will use fe80::421:8f45:8141:666 in zone en0 as source for IPv6
+2026-08-15T06:40:54Z INF Created ICMP proxy listening on 192.168.8.107:0
+2026-08-15T06:40:54Z INF ICMP proxy will use 192.168.8.107 as source for IPv4
+2026-08-15T06:40:54Z INF ICMP proxy will use fe80::421:8f45:8141:666 in zone en0 as source for IPv6
+2026-08-15T06:40:54Z INF Starting metrics server on 127.0.0.1:20241/metrics
+2026-08-15T06:40:54Z INF Tunnel connection curve preferences: [X25519MLKEM768 CurveID(65074) CurveP256] connIndex=0 event=0 ip=198.41.200.63
+2026-08-15T06:40:55Z INF Registered tunnel connection connIndex=0 connection=f2e66737-9243-4a04-b176-106c7e96044d event=0 ip=198.41.200.63 location=lax01 protocol=quic
+2026-08-15T06:41:02Z INF +-------------------------------------------------------------------------------------+
+2026-08-15T06:41:02Z INF |                               CONNECTIVITY PRE-CHECKS                               |
+2026-08-15T06:41:02Z INF +-------------------------------------------------------------------------------------+
+2026-08-15T06:41:02Z INF |  COMPONENT         TARGET                     STATUS  DETAILS                       |
+2026-08-15T06:41:02Z INF |  DNS Resolution    region1.v2.argotunnel.com  PASS    DNS Resolved successfully     |
+2026-08-15T06:41:02Z INF |  DNS Resolution    region2.v2.argotunnel.com  PASS    DNS Resolved successfully     |
+2026-08-15T06:41:02Z INF |  UDP Connectivity  region1.v2.argotunnel.com  PASS    QUIC connection successful    |
+2026-08-15T06:41:02Z INF |  UDP Connectivity  region2.v2.argotunnel.com  PASS    QUIC connection successful    |
+2026-08-15T06:41:02Z INF |  TCP Connectivity  region1.v2.argotunnel.com  PASS    HTTP/2 connection successful  |
+2026-08-15T06:41:02Z INF |  TCP Connectivity  region2.v2.argotunnel.com  PASS    HTTP/2 connection successful  |
+2026-08-15T06:41:02Z INF |  Cloudflare API    api.cloudflare.com:443     PASS    API is reachable              |
+2026-08-15T06:41:02Z INF |                                                                                     |
+2026-08-15T06:41:02Z INF |  SUMMARY: Environment is healthy. cloudflared will use 'quic' as primary protocol.  |
+2026-08-15T06:41:02Z INF +-------------------------------------------------------------------------------------+
+2026-08-15T06:41:02Z INF precheck component="DNS Resolution" details="DNS Resolved successfully" run_id=9272e06b-58e6-420f-a85f-327582bbd6ca status=pass target=region1.v2.argotunnel.com
+2026-08-15T06:41:02Z INF precheck component="DNS Resolution" details="DNS Resolved successfully" run_id=9272e06b-58e6-420f-a85f-327582bbd6ca status=pass target=region2.v2.argotunnel.com
+2026-08-15T06:41:02Z INF precheck component="UDP Connectivity" details="QUIC connection successful" run_id=9272e06b-58e6-420f-a85f-327582bbd6ca status=pass target=region1.v2.argotunnel.com
+2026-08-15T06:41:02Z INF precheck component="UDP Connectivity" details="QUIC connection successful" run_id=9272e06b-58e6-420f-a85f-327582bbd6ca status=pass target=region2.v2.argotunnel.com
+2026-08-15T06:41:02Z INF precheck component="TCP Connectivity" details="HTTP/2 connection successful" run_id=9272e06b-58e6-420f-a85f-327582bbd6ca status=pass target=region1.v2.argotunnel.com
+2026-08-15T06:41:02Z INF precheck component="TCP Connectivity" details="HTTP/2 connection successful" run_id=9272e06b-58e6-420f-a85f-327582bbd6ca status=pass target=region2.v2.argotunnel.com
+2026-08-15T06:41:02Z INF precheck component="Cloudflare API" details="API is reachable" run_id=9272e06b-58e6-420f-a85f-327582bbd6ca status=pass target=api.cloudflare.com:443
+2026-08-15T06:41:02Z INF precheck complete hard_fail=false run_id=9272e06b-58e6-420f-a85f-327582bbd6ca suggested_protocol=quic
+[2026-08-15 14:41:17] 🔄 隧道 URL 变化:  → https://sandra-fiction-thoroughly-phrase.trycloudflare.com
+[2026-08-15 14:41:17]   更新 Netlify LM_BASE_URL…
+Set environment variable LM_BASE_URL=https://sandra-fiction-thoroughly-phrase.trycloudflare.com/v1 in the all context
+Changes will require a redeploy to take effect on any deployed versions of your project.
+[2026-08-15 14:41:24]   重新部署…
+ ›   Warning: --build is now the default and can safely be omitted.
+​
+Netlify Build                                                 
+────────────────────────────────────────────────────────────────
+​
+❯ Version
+  @netlify/build 36.3.5
+​
+❯ Flags
+  accountId: 6a7b48c187b990520cface3f
+  deployId: 6a800a1ab24a4a722f828c53
+​
+❯ Current directory
+  /Users/rc/project/new/ai-detective
+​
+❯ Config file
+  /Users/rc/project/new/ai-detective/netlify.toml
+​
+❯ Context
+  production
+​
+Functions bundling                                            
+────────────────────────────────────────────────────────────────
+​
+Packaging Functions from netlify/functions directory:
+ - accuse.js
+ - case.js
+ - cases.js
+ - chat-result.js
+ - chat.js
+​
+​
+(Functions bundling completed in 150ms)
+
+Deploying to Netlify
+────────────────────────────────────────────────────────────────
+
+Deploy path:        /Users/rc/project/new/ai-detective/public
+Functions path:     /Users/rc/project/new/ai-detective/netlify/functions
+Configuration path: /Users/rc/project/new/ai-detective/netlify.toml
+
+⠋ Uploading blobs to deploy store...
+
+✔ Finished uploading blobs to deploy store
+⠋ Hashing files...
+⠋ Looking for a functions cache...
+✔ Ignoring functions cache (use without --skip-functions-cache to change)
+✔ Finished hashing 2 files and 5 functions
+⠋ CDN diffing files...
+✔ CDN requesting 0 files and 5 functions and 0 edge functions
+⠋ Uploading 5 files
+✔ Finished uploading 5 assets
+⠋ Waiting for deploy to go live...
+✔ Deploy is live!
+​
+Netlify Build Complete                                        
+────────────────────────────────────────────────────────────────
+​
+(Netlify Build completed in 16.8s)
+
+🚀 Deploy complete
+────────────────────────────────────────────────────────────────
+
+Production URL: <https://ai-detective-game-828.netlify.app>
+Unique deploy URL: <https://6a800a1ab24a4a722f828c53--ai-detective-game-828.netlify.app>
+
+Build logs: <https://app.netlify.com/projects/ai-detective-game-828/deploys/6a800a1ab24a4a722f828c53>
+Function logs: <https://app.netlify.com/projects/ai-detective-game-828/logs/functions>
+Edge function logs: <https://app.netlify.com/projects/ai-detective-game-828/logs/edge-functions>
+[2026-08-15 14:41:47] ✅ Netlify 已同步新隧道地址

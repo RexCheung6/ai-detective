@@ -38,6 +38,8 @@ async function callLlm(system, history, userMsg) {
 async function runChatTask(body, taskId) {
   const store = getStore({ name: STORE_NAME });
   try {
+    // 自检：立即写入一个 started 标记，验证 Blobs 可写
+    await store.set(`${taskId}_started`, JSON.stringify({ ts: Date.now(), hasBody: !!body }));
     const caseData = loadCase(body.case_id);
     const suspect = caseData.suspects.find(s => s.id === body.suspect_id);
     if (!suspect) throw new Error(`suspect ${body.suspect_id} not found`);

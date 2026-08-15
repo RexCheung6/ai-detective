@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>AI 侦探 · 布莱克伍德庄园谋杀案</title>
+<style>
+  :root {
+    --bg: #0f1218;
+    --panel: #171c26;
+    --panel2: #1e2532;
+    --border: #2a3344;
+    --text: #e8e6e1;
+    --dim: #8b93a3;
+    --accent: #c9a227;
+    --accent2: #e0b84a;
+    --danger: #b04a4a;
+    --ok: #4a9d6e;
+    --shadow: 0 8px 30px rgba(0,0,0,.45);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { height:100%; }
+  body {
+    background: radial-gradient(1200px 600px at 50% -10%, #1b2333 0%, var(--bg) 55%);
+    color: var(--text);
+    font-family: -apple-system, "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+    display:flex; justify-content:center;
+  }
+  #app {
+    width:100%; max-width:480px; height:100dvh;
+    display:flex; flex-direction:column;
+    position:relative; overflow:hidden;
+  }
+
+  /* ---------- 通用 ---------- */
+  /* 所有 screen 绝对叠放 + 淡入淡出切换。
+     为什么不用滑动: 滑动切换动画中间段两页同屏(旧页左滑+新页右滑)，视觉杂乱。
+     fade 方案: 旧页透明度归0、新页从0到1，任何时刻只有一页可见，永不重叠。 */
+  .screen { position:absolute; inset:0; display:flex; flex-direction:column;
+    background:var(--bg);
+    opacity:0; visibility:hidden; pointer-events:none;
+    transition:opacity .28s ease, visibility 0s linear .28s; }
+  .screen.active { opacity:1; visibility:visible; pointer-events:auto;
+    transition:opacity .28s ease; }
+
+  .topbar { padding:14px 16px 10px; display:flex; align-items:center; gap:10px; border-bottom:1px solid var(--border); background:#12161f; }
+  .topbar .title { font-size:15px; font-weight:700; letter-spacing:.5px; flex:1; }
+  .topbar .sub { font-size:11px; color:var(--dim); }
+  .icon-btn { background:var(--panel2); border:1px solid var(--border); color:var(--text); border-radius:10px; padding:8px 12px; font-size:13px; cursor:pointer; }
+
+  .scroll { flex:1; min-height:0; overflow-y:auto; padding:16px; -webkit-overflow-scrolling:touch; }
+
+  /* ---------- 开场 ---------- */
+  #screen-intro { justify-content:center; }
+  .intro-inner { padding:32px 24px; text-align:center; }
+  .badge { display:inline-block; background:rgba(201,162,39,.12); border:1px solid rgba(201,162,39,.35); color:var(--accent2); font-size:11px; letter-spacing:3px; padding:5px 14px; border-radius:20px; margin-bottom:22px; }
+  .logo { font-size:52px; margin-bottom:14px; text-shadow:0 0 40px rgba(201,162,39,.35); }
+  .intro-inner h1 { font-size:26px; letter-spacing:2px; margin-bottom:6px; }
+  .era { color:var(--dim); font-size:13px; margin-bottom:26px; }
+  .case-intro { text-align:left; background:var(--panel); border:1px solid var(--border); border-left:3px solid var(--accent); border-radius:12px; padding:16px; font-size:14px; line-height:1.9; color:#c9ccd4; }
+  .case-intro .scene-label { color:var(--accent2); font-size:11px; letter-spacing:2px; margin-bottom:6px; }
+  /* 案件选择卡片 */
+  .case-card { text-align:left; background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:16px; margin-bottom:12px; cursor:pointer; transition:transform .12s, border-color .12s; }
+  .case-card:active { transform:scale(.985); }
+  .case-card:hover { border-color:var(--accent); }
+  .case-card .head { display:flex; align-items:center; gap:10px; margin-bottom:6px; }
+  .case-card .cc-icon { font-size:22px; }
+  .case-card .cc-title { font-size:16px; font-weight:700; flex:1; }
+  .case-card .cc-era { font-size:11px; color:var(--accent2); background:rgba(201,162,39,.12); padding:2px 10px; border-radius:10px; white-space:nowrap; }
+  .case-card .cc-intro { font-size:12.5px; color:var(--dim); line-height:1.7; }
+  .case-card .cc-meta { font-size:11px; color:var(--dim); margin-top:8px; }
+  /* 登录/注册 */
+  .auth-box { margin-top:24px; }
+  .auth-input { width:100%; background:var(--panel2); border:1px solid var(--border); border-radius:12px; padding:14px 16px; color:var(--text); font-size:15px; outline:none; margin-bottom:12px; box-sizing:border-box; }
+  .auth-input:focus { border-color:var(--accent); }
+  .auth-msg { min-height:20px; font-size:12.5px; color:var(--danger); margin-bottom:8px; text-align:left; line-height:1.5; }
+  .auth-msg.ok { color:var(--ok); }
+  .scene-box { text-align:left; background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:16px; font-size:13.5px; line-height:1.9; color:#b6bcc8; margin-top:14px; }
+  .hint { color:var(--dim); font-size:12px; margin-top:14px; }
+  .btn { display:block; width:100%; padding:15px; border:none; border-radius:14px; font-size:16px; font-weight:700; cursor:pointer; letter-spacing:2px; }
+  .btn-primary { background:linear-gradient(135deg, var(--accent2), var(--accent)); color:#1a1405; box-shadow:0 6px 24px rgba(201,162,39,.35); margin-top:24px; }
+  .btn-ghost { background:var(--panel2); border:1px solid var(--border); color:var(--text); margin-top:12px; }
+
+  /* ---------- 嫌疑人列表 ---------- */
+  .suspect-card { display:flex; align-items:center; gap:14px; background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:14px; margin-bottom:12px; cursor:pointer; transition:transform .12s; }
+  .suspect-card:active { transform:scale(.985); }
+  .suspect-avatar { width:52px; height:52px; border-radius:50%; background:var(--panel2); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:26px; flex-shrink:0; }
+  .suspect-info { flex:1; min-width:0; }
+  .suspect-name { font-size:16px; font-weight:700; }
+  .suspect-role { font-size:12px; color:var(--dim); margin-top:2px; }
+  .suspect-arrow { color:var(--dim); font-size:18px; }
+  .section-title { font-size:12px; color:var(--dim); letter-spacing:2px; margin:18px 0 12px; }
+
+  /* ---------- 审问 ---------- */
+  #screen-interrogation { background:var(--bg); }
+  .chat { flex:1; min-height:0; overflow-y:auto; padding:16px; -webkit-overflow-scrolling:touch; }
+  .msg { display:flex; margin-bottom:14px; align-items:flex-end; gap:8px; animation:rise .25s ease; }
+  @keyframes rise { from { opacity:0; transform:translateY(8px);} to { opacity:1; transform:none;} }
+  .msg .ava { width:34px; height:34px; border-radius:50%; background:var(--panel2); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:17px; flex-shrink:0; }
+  .msg .bubble { max-width:78%; padding:11px 14px; border-radius:16px; font-size:14.5px; line-height:1.7; word-break:break-word; }
+  .msg.suspect .bubble { background:var(--panel2); border:1px solid var(--border); border-bottom-left-radius:4px; color:#e4e2dc; }
+  .msg.player { flex-direction:row-reverse; }
+  .msg.player .bubble { background:linear-gradient(135deg,#2a3a5c,#22304a); border-bottom-right-radius:4px; }
+  .msg.sys { justify-content:center; }
+  .msg.sys .bubble { background:rgba(201,162,39,.1); border:1px dashed rgba(201,162,39,.4); color:var(--accent2); font-size:12.5px; padding:8px 14px; border-radius:20px; text-align:center; max-width:90%; }
+  .mood-tag { font-size:10.5px; color:var(--dim); margin-top:5px; padding-left:2px; }
+  .typing { display:flex; gap:5px; padding:12px 0; }
+  .typing span { width:8px; height:8px; background:var(--dim); border-radius:50%; animation:blink 1.2s infinite; }
+  .typing span:nth-child(2){ animation-delay:.2s } .typing span:nth-child(3){ animation-delay:.4s }
+  @keyframes blink { 0%,80%,100%{opacity:.25} 40%{opacity:1} }
+
+  .inputbar { display:flex; gap:8px; padding:10px 12px 14px; border-top:1px solid var(--border); background:#12161f; flex-shrink:0; }
+  .inputbar input { flex:1; min-width:0; background:var(--panel2); border:1px solid var(--border); border-radius:22px; padding:12px 16px; color:var(--text); font-size:15px; outline:none; }
+  .inputbar input:focus { border-color:var(--accent); }
+  .inputbar button { background:linear-gradient(135deg,var(--accent2),var(--accent)); border:none; border-radius:50%; width:44px; height:44px; color:#1a1405; font-size:18px; cursor:pointer; flex-shrink:0; }
+  .quick-asks { display:flex; gap:8px; overflow-x:auto; padding:8px 12px 2px; flex-shrink:0; scrollbar-width:none; }
+  .quick-asks::-webkit-scrollbar { display:none; }
+  .quick-asks button { flex-shrink:0; background:var(--panel); border:1px solid var(--border); color:var(--dim); border-radius:16px; padding:7px 13px; font-size:12.5px; cursor:pointer; white-space:nowrap; }
+
+  /* 新线索弹卡 */
+  .clue-pop { position:absolute; left:16px; right:16px; top:70px; background:linear-gradient(135deg,#232b1d,#1c2416); border:1px solid rgba(122,162,74,.5); border-radius:14px; padding:14px; box-shadow:var(--shadow); z-index:30; animation:rise .3s; }
+  .clue-pop .lbl { color:#8fbf5e; font-size:11px; letter-spacing:2px; margin-bottom:4px; }
+  .clue-pop .t { font-weight:700; font-size:14px; margin-bottom:3px; }
+  .clue-pop .d { font-size:12.5px; color:#b9c2b0; line-height:1.6; }
+  .clue-pop .x { position:absolute; right:10px; top:8px; color:var(--dim); cursor:pointer; font-size:16px; }
+
+  /* ---------- 笔记本 ---------- */
+  .clue-item { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:13px; margin-bottom:10px; }
+  .clue-item.key { border-left:3px solid var(--accent); }
+  .clue-item .head { display:flex; align-items:center; gap:8px; margin-bottom:5px; }
+  .clue-item .t { font-size:14px; font-weight:700; flex:1; }
+  .clue-item .keytag { font-size:10px; background:rgba(201,162,39,.15); color:var(--accent2); padding:2px 8px; border-radius:10px; letter-spacing:1px; }
+  .clue-item .d { font-size:13px; color:#b6bcc8; line-height:1.7; }
+  .clue-item .src { font-size:11px; color:var(--dim); margin-top:6px; }
+  .empty { text-align:center; color:var(--dim); font-size:13px; padding:40px 20px; line-height:1.8; }
+
+  /* ---------- 指控 ---------- */
+  .accuse-suspects { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .accuse-suspects .suspect-card { margin:0; flex-direction:column; text-align:center; padding:14px 8px; border:2px solid var(--border); }
+  .accuse-suspects .suspect-card.selected { border-color:var(--accent); background:rgba(201,162,39,.07); }
+  .accuse-suspects .suspect-info { display:flex; flex-direction:column; align-items:center; }
+  .accuse-suspects .suspect-avatar { width:44px; height:44px; font-size:22px; }
+  .accuse-evid { margin-top:14px; }
+  .evid-item { display:flex; align-items:flex-start; gap:10px; background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:11px 12px; margin-bottom:8px; cursor:pointer; }
+  .evid-item input { margin-top:4px; accent-color:var(--accent); width:17px; height:17px; }
+  .evid-item .t { font-size:13.5px; font-weight:600; margin-bottom:2px; }
+  .evid-item .d { font-size:12px; color:var(--dim); line-height:1.5; }
+  .btn-danger { background:linear-gradient(135deg,#c25a5a,#a13f3f); color:#fff; margin-top:16px; }
+
+  /* ---------- 结局 ---------- */
+  .verdict { text-align:center; padding:30px 24px; }
+  .verdict .big { font-size:56px; margin-bottom:14px; }
+  .verdict h2 { font-size:24px; letter-spacing:2px; margin-bottom:8px; }
+  .verdict .sub { color:var(--dim); font-size:13px; margin-bottom:22px; }
+  .verdict .truth-box { text-align:left; background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:16px; font-size:13.5px; line-height:1.9; color:#c9ccd4; margin-bottom:8px; }
+  .verdict .truth-box .lbl { color:var(--accent2); font-size:11px; letter-spacing:2px; margin-bottom:6px; }
+  .verdict.ok h2 { color:var(--ok); }
+  .verdict.bad h2 { color:var(--danger); }
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- 登录/注册 -->
+  <div class="screen active" id="screen-auth">
+    <div class="scroll"><div class="intro-inner" style="padding-top:60px">
+      <div class="badge">AI 侦探 · 交互推理</div>
+      <div class="logo">🕵️</div>
+      <h1 id="auth-title">登录</h1>
+      <div class="era" id="auth-sub">欢迎回来，侦探</div>
+
+      <div class="auth-box" id="auth-login">
+        <input class="auth-input" id="login-username" type="text" placeholder="用户名（英文/数字/下划线）" autocomplete="username">
+        <input class="auth-input" id="login-password" type="password" placeholder="密码（至少6位）" autocomplete="current-password">
+        <div class="auth-msg" id="login-msg"></div>
+        <button class="btn btn-primary" onclick="doLogin()">登 录</button>
+        <button class="btn btn-ghost" onclick="switchAuth('register')">没有账号？去注册</button>
+      </div>
+
+      <div class="auth-box" id="auth-register" style="display:none">
+        <input class="auth-input" id="reg-username" type="text" placeholder="用户名（英文/数字/下划线）" autocomplete="username">
+        <input class="auth-input" id="reg-password" type="password" placeholder="密码（至少6位）" autocomplete="new-password">
+        <input class="auth-input" id="reg-password2" type="password" placeholder="确认密码" autocomplete="new-password">
+        <div class="auth-msg" id="reg-msg"></div>
+        <button class="btn btn-primary" onclick="doRegister()">注 册</button>
+        <button class="btn btn-ghost" onclick="switchAuth('login')">已有账号？去登录</button>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- 开场 -->
+  <div class="screen" id="screen-intro">
+    <div class="scroll"><div class="intro-inner">
+      <div class="badge">AI 侦探 · 交互推理</div>
+      <div class="logo">🕵️</div>
+      <h1>选择案件</h1>
+      <div class="era">每个案件都是全新的谜题</div>
+      <div id="case-list"></div>
+      <div id="case-detail" style="display:none">
+        <div class="case-intro" id="intro-text"></div>
+        <div class="scene-box" id="scene-text"></div>
+        <div class="hint" id="hint-text"></div>
+        <button class="btn btn-primary" onclick="showSuspects()">开始调查 →</button>
+        <button class="btn btn-ghost" onclick="resetIntro()">← 换一个案件</button>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- 嫌疑人列表 -->
+  <div class="screen" id="screen-suspects">
+    <div class="topbar">
+      <span class="title">嫌疑人 <span id="suspect-count"></span></span>
+      <button class="icon-btn" onclick="showNotebook()">📒 证据 <span id="clue-count-badge" style="color:var(--accent2)">0</span></button>
+      <button class="icon-btn" onclick="logout()" title="退出登录">🚪</button>
+    </div>
+    <div class="scroll" id="suspect-list"></div>
+    <div style="padding:0 16px 14px">
+      <button class="btn btn-danger" onclick="showAccuse()">⚖️ 提出指控</button>
+    </div>
+  </div>
+
+  <!-- 审问 -->
+  <div class="screen" id="screen-interrogation">
+    <div class="topbar">
+      <button class="icon-btn" onclick="backToSuspects()">←</button>
+      <span class="title" id="int-name">审问</span>
+      <button class="icon-btn" onclick="showNotebook()">📒</button>
+    </div>
+    <div class="chat" id="chat-box"></div>
+    <div class="quick-asks" id="quick-asks"></div>
+    <div class="inputbar">
+      <input id="chat-input" type="text" placeholder="问点什么……" autocomplete="off">
+      <button onclick="sendMsg()">➤</button>
+    </div>
+  </div>
+
+  <!-- 笔记本 -->
+  <div class="screen" id="screen-notebook">
+    <div class="topbar"><button class="icon-btn" onclick="backFromNotebook()">←</button><span class="title">证据笔记本</span></div>
+    <div class="scroll" id="clue-list"></div>
+  </div>
+
+  <!-- 指控 -->
+  <div class="screen" id="screen-accuse">
+    <div class="topbar"><button class="icon-btn" onclick="showSuspects()">←</button><span class="title">提出指控</span></div>
+    <div class="scroll">
+      <div class="section-title">指控谁？</div>
+      <div class="accuse-suspects" id="accuse-suspects"></div>
+      <div class="section-title">使用哪些证据？</div>
+      <div id="accuse-evid"></div>
+      <button class="btn btn-danger" id="accuse-btn" onclick="submitAccuse()">🔨 就是他！</button>
+    </div>
+  </div>
+
+  <!-- 结局 -->
+  <div class="screen" id="screen-verdict">
+    <div class="scroll"><div class="verdict" id="verdict-box"></div></div>
+  </div>
+</div>
+
+<script>
+// ==================== 用户系统 ====================
+const USERS_KEY = 'aid_users';      // {username: {salt, hash}}
+const SESSION_KEY = 'aid_session';  // 当前登录用户名
+let currentUser = null;
+
+function getUsers() { try { return JSON.parse(localStorage.getItem(USERS_KEY)) || {}; } catch(e) { return {}; } }
+function saveUsers(u) { localStorage.setItem(USERS_KEY, JSON.stringify(u)); }
+
+// 哈希密码：Web Crypto SHA-256 + 盐
+async function hashPassword(pwd, salt) {
+  const data = new TextEncoder().encode(salt + ':' + pwd);
+  const buf = await crypto.subtle.digest('SHA-256', data);
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+function genSalt() {
+  const arr = new Uint8Array(16);
+  crypto.getRandomValues(arr);
+  return [...arr].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// 校验规则
+function validUsername(u) { return /^[A-Za-z0-9_]+$/.test(u); }
+function validPassword(p) { return p.length >= 6; }
+
+function authMsg(el, text, ok) {
+  el.textContent = text;
+  el.className = 'auth-msg' + (ok ? ' ok' : '');
+}
+
+function switchAuth(mode) {
+  document.getElementById('auth-login').style.display = mode === 'login' ? 'block' : 'none';
+  document.getElementById('auth-register').style.display = mode === 'register' ? 'block' : 'none';
+  document.getElementById('auth-title').textContent = mode === 'login' ? '登录' : '注册';
+  document.getElementById('auth-sub').textContent = mode === 'login' ? '欢迎回来，侦探' : '新侦探，注册一个账号';
+  document.getElementById('login-msg').textContent = '';
+  document.getElementById('reg-msg').textContent = '';
+}
+
+async function doRegister() {
+  const u = document.getElementById('reg-username').value.trim();
+  const p1 = document.getElementById('reg-password').value;
+  const p2 = document.getElementById('reg-password2').value;
+  const msg = document.getElementById('reg-msg');
+  if (!u) return authMsg(msg, '请输入用户名');
+  if (!validUsername(u)) return authMsg(msg, '用户名只能包含英文、数字和下划线');
+  if (!validPassword(p1)) return authMsg(msg, '密码至少需要 6 位');
+  if (p1 !== p2) return authMsg(msg, '两次输入的密码不一致');
+  const users = getUsers();
+  if (users[u]) return authMsg(msg, '该用户名已被注册，请换一个');
+  const salt = genSalt();
+  const hash = await hashPassword(p1, salt);
+  users[u] = { salt, hash };
+  saveUsers(users);
+  currentUser = u;
+  localStorage.setItem(SESSION_KEY, u);
+  enterGame();
+}
+
+async function doLogin() {
+  const u = document.getElementById('login-username').value.trim();
+  const p = document.getElementById('login-password').value;
+  const msg = document.getElementById('login-msg');
+  if (!u || !p) return authMsg(msg, '请输入用户名和密码');
+  const users = getUsers();
+  const rec = users[u];
+  if (!rec) return authMsg(msg, '用户不存在，请先注册');
+  const hash = await hashPassword(p, rec.salt);
+  if (hash !== rec.hash) return authMsg(msg, '密码错误');
+  currentUser = u;
+  localStorage.setItem(SESSION_KEY, u);
+  enterGame();
+}
+
+function logout() {
+  saveProgress();
+  currentUser = null;
+  localStorage.removeItem(SESSION_KEY);
+  document.getElementById('login-username').value = '';
+  document.getElementById('login-password').value = '';
+  switchAuth('login');
+  go('screen-auth');
+}
+
+// ==================== 进度保存/恢复 ====================
+function saveProgress() {
+  if (!currentUser || !CASE) return;
+  const data = {
+    caseId: CASE.id,
+    screen: document.querySelector('.screen.active')?.id || '',
+    suspectId: currentSuspect ? currentSuspect.id : null,
+    history,
+    ownedClues,
+    clueDetails,
+    accuseSuspect,
+    updatedAt: Date.now()
+  };
+  localStorage.setItem(`aid_progress_${currentUser}`, JSON.stringify(data));
+}
+
+function loadProgress() {
+  if (!currentUser) return null;
+  try {
+    const raw = localStorage.getItem(`aid_progress_${currentUser}`);
+    return raw ? JSON.parse(raw) : null;
+  } catch(e) { return null; }
+}
+
+function clearProgress() {
+  if (currentUser) localStorage.removeItem(`aid_progress_${currentUser}`);
+}
+
+let CASE = null;
+let currentSuspect = null;
+let history = [];          // 当前审问的对话历史（发送给后端）
+let ownedClues = [];       // 已收集线索 id
+let clueDetails = [];      // 已收集线索详情
+let accuseSuspect = null;  // 指控对象
+const chatBox = document.getElementById('chat-box');
+
+async function fetchJSON(url, opts) {
+  const r = await fetch(url, opts);
+  return r.json();
+}
+
+// ---------- 加载案件 ----------
+(async function init() {
+  // 检查是否已有登录会话（记住用户）
+  const savedUser = localStorage.getItem(SESSION_KEY);
+  if (savedUser && getUsers()[savedUser]) {
+    currentUser = savedUser;
+    await loadCases();
+    const prog = loadProgress();
+    if (prog && prog.caseId) {
+      restoreProgress(prog);  // 回到上次游玩界面
+    } else {
+      go('screen-intro');
+    }
+  } else {
+    go('screen-auth');  // 需要登录/注册
+  }
+})();
+
+// 登录/注册成功后进入游戏
+async function enterGame() {
+  await loadCases();
+  const prog = loadProgress();
+  if (prog && prog.caseId) {
+    restoreProgress(prog);  // 回到上次游玩界面
+  } else {
+    go('screen-intro');
+  }
+}
+
+async function loadCases() {
+  const cases = await fetchJSON('/api/cases');
+  const caseEmojis = { manor: '🏰', station: '🚀', magic: '🎩', nightclub: '🎷' };
+  document.getElementById('case-list').innerHTML = cases.map(c => `
+    <div class="case-card" onclick="selectCase('${c.id}')">
+      <div class="head">
+        <span class="cc-icon">${caseEmojis[c.id] || '📁'}</span>
+        <span class="cc-title">${c.title}</span>
+        <span class="cc-era">${c.era}</span>
+      </div>
+      <div class="cc-intro">${c.intro}</div>
+      <div class="cc-meta">${c.suspect_count} 名嫌疑人</div>
+    </div>`).join('');
+  // 不自动选中第一个案件，让用户自己选（或恢复进度）
+}
+
+// 恢复存档：回到上次游玩界面
+async function restoreProgress(prog) {
+  if (!prog || !prog.caseId) return;
+  try {
+    CASE = await fetchJSON(`/api/case?id=${prog.caseId}`);
+  } catch(e) { return; }
+  // 还原案件详情界面
+  document.getElementById('case-list').style.display = 'none';
+  document.getElementById('case-detail').style.display = 'block';
+  document.querySelector('#screen-intro h1').textContent = CASE.title;
+  document.querySelector('#screen-intro .era').textContent = CASE.era;
+  document.getElementById('intro-text').textContent = CASE.intro;
+  document.getElementById('scene-text').innerHTML =
+    `<div class="scene-label">🏚 案发现场</div>${CASE.scene}`;
+  document.getElementById('hint-text').textContent = '⏱ ' + (CASE.time_limit_hint || '');
+  document.getElementById('suspect-count').textContent = `(${CASE.suspects.length}人)`;
+  // 还原游戏状态
+  ownedClues = prog.ownedClues || [];
+  clueDetails = prog.clueDetails || [];
+  history = prog.history || [];
+  accuseSuspect = prog.accuseSuspect || null;
+  updateClueBadge();
+  buildSuspectList();
+  buildAccuseList();
+
+  const target = prog.screen || 'screen-suspects';
+  if (target === 'screen-interrogation' && prog.suspectId) {
+    // 回到审问界面：重建对话历史
+    const s = CASE.suspects.find(x => x.id === prog.suspectId);
+    if (s) {
+      currentSuspect = s;
+      document.getElementById('int-name').textContent = `审问 ${s.emoji} ${s.name}`;
+      const box = document.getElementById('chat-box');
+      box.innerHTML = '';
+      box.innerHTML += `<div class="msg suspect"><div class="ava">${s.emoji}</div><div><div class="bubble">${escapeHtml(s.opening_line)}</div><div class="mood-tag">${s.name}</div></div></div>`;
+      // 重建审问历史（user/assistant 成对渲染）
+      for (let i = 0; i < history.length; i += 2) {
+        if (history[i] && history[i].role === 'user') {
+          box.innerHTML += `<div class="msg player"><div class="ava">🧑‍⚖️</div><div class="bubble">${escapeHtml(history[i].content)}</div></div>`;
+        }
+        if (history[i+1] && history[i+1].role === 'assistant') {
+          box.innerHTML += `<div class="msg suspect"><div class="ava">${s.emoji}</div><div><div class="bubble">${escapeHtml(history[i+1].content)}</div><div class="mood-tag">${s.name}</div></div></div>`;
+        }
+      }
+      const asks = (s.suggested_questions && s.suggested_questions.length
+        ? s.suggested_questions
+        : ['案发时你在哪里？', '你有没有看到什么异常？', '你认识死者吗？']);
+      document.getElementById('quick-asks').innerHTML =
+        asks.map(q => `<button onclick="quickAsk('${q.replace(/'/g, "\\'")}')">${q}</button>`).join('');
+      box.scrollTop = box.scrollHeight;
+      go('screen-interrogation');
+      return;
+    }
+  } else if (target === 'screen-accuse') {
+    // 回到指控界面
+    renderEvidence();
+    if (accuseSuspect) {
+      document.querySelectorAll('#accuse-suspects .suspect-card').forEach(x => {
+        if (x.dataset.id === accuseSuspect) x.classList.add('selected');
+      });
+    }
+    go('screen-accuse');
+    return;
+  } else if (target === 'screen-verdict') {
+    go('screen-suspects');  // 结局界面不保存，回到嫌疑人列表
+    return;
+  }
+  // 默认回到嫌疑人列表（或案件详情）
+  if (target === 'screen-suspects') go('screen-suspects');
+  else go('screen-intro');
+}
+
+async function selectCase(id) {
+  CASE = await fetchJSON(`/api/case?id=${id}`);
+  document.getElementById('case-list').style.display = 'none';
+  document.getElementById('case-detail').style.display = 'block';
+  document.querySelector('#screen-intro h1').textContent = CASE.title;
+  document.querySelector('#screen-intro .era').textContent = CASE.era;
+  document.getElementById('intro-text').textContent = CASE.intro;
+  document.getElementById('scene-text').innerHTML =
+    `<div class="scene-label">🏚 案发现场</div>${CASE.scene}`;
+  document.getElementById('hint-text').textContent = '⏱ ' + (CASE.time_limit_hint || '');
+  document.getElementById('suspect-count').textContent = `(${CASE.suspects.length}人)`;
+  // 重置游戏状态
+  ownedClues = [];
+  clueDetails = [];
+  currentSuspect = null;
+  history = [];
+  accuseSuspect = null;
+  updateClueBadge();
+  buildSuspectList();
+  buildAccuseList();
+  saveProgress();
+}
+
+function resetIntro() {
+  document.getElementById('case-list').style.display = 'block';
+  document.getElementById('case-detail').style.display = 'none';
+  document.querySelector('#screen-intro h1').textContent = '选择案件';
+  document.querySelector('#screen-intro .era').textContent = '每个案件都是全新的谜题';
+}
+
+function buildSuspectList() {
+  const el = document.getElementById('suspect-list');
+  el.innerHTML = CASE.suspects.map(s => `
+    <div class="suspect-card" onclick="startInterrogation('${s.id}')">
+      <div class="suspect-avatar">${s.emoji}</div>
+      <div class="suspect-info">
+        <div class="suspect-name">${s.name}</div>
+        <div class="suspect-role">${s.role} · ${s.age}岁</div>
+      </div>
+      <div class="suspect-arrow">›</div>
+    </div>`).join('');
+}
+
+function buildAccuseList() {
+  document.getElementById('accuse-suspects').innerHTML = CASE.suspects.map(s => `
+    <div class="suspect-card" data-id="${s.id}" onclick="pickAccuseSuspect('${s.id}', this)">
+      <div class="suspect-avatar">${s.emoji}</div>
+      <div class="suspect-info"><div class="suspect-name">${s.name}</div>
+      <div class="suspect-role">${s.role}</div></div>
+    </div>`).join('');
+}
+
+// ---------- 屏幕切换 ----------
+// 淡入淡出切换：只需切换 active 类，CSS 负责 opacity 过渡。
+// 旧页自动淡出(0.28s) + visibility 延迟隐藏，新页淡入——任何时刻只有一页可见。
+function go(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  // 切换界面时保存进度（登录后）
+  if (currentUser && CASE && id !== 'screen-auth' && id !== 'screen-verdict') saveProgress();
+}
+function showSuspects() { go('screen-suspects'); }
+function showNotebook() { go('screen-notebook'); renderNotebook(); }
+function backFromNotebook() { currentSuspect ? go('screen-interrogation') : go('screen-suspects'); }
+function backToSuspects() { history = []; currentSuspect = null; saveProgress(); go('screen-suspects'); }
+function showAccuse() { go('screen-accuse'); renderEvidence(); }
+
+// ---------- 审问 ----------
+function startInterrogation(id) {
+  const s = CASE.suspects.find(x => x.id === id);
+  currentSuspect = s;
+  history = [];
+  document.getElementById('int-name').textContent = `审问 ${s.emoji} ${s.name}`;
+  document.getElementById('chat-box').innerHTML = '';
+  const el = document.getElementById('chat-box');
+  el.innerHTML += `<div class="msg suspect"><div class="ava">${s.emoji}</div><div><div class="bubble">${escapeHtml(s.opening_line)}</div><div class="mood-tag">${s.name}</div></div></div>`;
+  // 快捷提问：按当前嫌疑人的专属建议问题渲染（每个案件/嫌疑人不同）
+  const asks = (s.suggested_questions && s.suggested_questions.length
+    ? s.suggested_questions
+    : ['案发时你在哪里？', '你有没有看到什么异常？', '你认识死者吗？']);
+  document.getElementById('quick-asks').innerHTML =
+    asks.map(q => `<button onclick="quickAsk('${q.replace(/'/g, "\\'")}')">${q}</button>`).join('');
+  go('screen-interrogation');
+  document.getElementById('chat-input').focus();
+}
+
+function quickAsk(q) { document.getElementById('chat-input').value = q; sendMsg(); }
+
+function addMsg(role, text, ava, mood) {
+  const box = document.getElementById('chat-box');
+  if (role === 'suspect') {
+    box.innerHTML += `<div class="msg suspect"><div class="ava">${ava}</div><div><div class="bubble">${text}</div><div class="mood-tag">${currentSuspect.name} · ${moodText(mood)}</div></div></div>`;
+  } else if (role === 'player') {
+    box.innerHTML += `<div class="msg player"><div class="ava">🧑‍⚖️</div><div class="bubble">${text}</div></div>`;
+  } else {
+    box.innerHTML += `<div class="msg sys"><div class="bubble">${text}</div></div>`;
+  }
+  box.scrollTop = box.scrollHeight;
+}
+function moodText(m) { return {calm:'镇定', nervous:'紧张', angry:'恼怒', evasive:'回避', sad:'悲伤'}[m] || m; }
+
+function showTyping() {
+  const box = document.getElementById('chat-box');
+  box.innerHTML += `<div class="msg suspect" id="typing-msg"><div class="ava">${currentSuspect.emoji}</div><div class="typing"><span></span><span></span><span></span></div></div>`;
+  box.scrollTop = box.scrollHeight;
+}
+function hideTyping() { document.getElementById('typing-msg')?.remove(); }
+
+async function sendMsg() {
+  const input = document.getElementById('chat-input');
+  const q = input.value.trim();
+  if (!q || !currentSuspect) return;
+  input.value = '';
+  addMsg('player', escapeHtml(q));
+  showTyping();
+  try {
+    const res = await fetchJSON('/api/chat', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        case_id: CASE.id, suspect_id: currentSuspect.id,
+        question: q, history, owned_clues: ownedClues
+      })
+    });
+    hideTyping();
+    if (res.error) { addMsg('sys', '⚠️ 后端出错：' + res.error); return; }
+    history.push({role:'user', content:q});
+    history.push({role:'assistant', content:res.reply});
+    addMsg('suspect', escapeHtml(res.reply), currentSuspect.emoji, res.mood);
+    if (res.new_clues && res.new_clues.length) {
+      res.new_clues.forEach(c => {
+        ownedClues.push(c.id); clueDetails.push(c);
+      });
+      updateClueBadge();
+      showCluePop(res.new_clues[0]);
+    }
+    saveProgress();
+  } catch(e) {
+    hideTyping();
+    addMsg('sys', '⚠️ 网络错误：' + e.message);
+  }
+}
+
+function showCluePop(clue) {
+  const pop = document.createElement('div');
+  pop.className = 'clue-pop';
+  pop.innerHTML = `<div class="lbl">📎 新线索解锁</div><div class="t">${clue.title}</div><div class="d">${clue.desc}</div><span class="x" onclick="this.parentElement.remove()">✕</span>`;
+  document.getElementById('app').appendChild(pop);
+  setTimeout(() => pop.remove(), 6000);
+}
+
+function updateClueBadge() { document.getElementById('clue-count-badge').textContent = ownedClues.length; }
+
+// ---------- 笔记本 ----------
+function renderNotebook() {
+  const el = document.getElementById('clue-list');
+  if (!clueDetails.length) {
+    el.innerHTML = `<div class="empty">🔍 还没有线索<br>去审问嫌疑人，<br>他们的话里藏着真相。</div>`;
+    return;
+  }
+  el.innerHTML = clueDetails.map(c => `
+    <div class="clue-item ${c.is_key ? 'key' : ''}">
+      <div class="head"><span class="t">${c.title}</span>${c.is_key ? '<span class="keytag">关键</span>' : ''}</div>
+      <div class="d">${c.desc}</div>
+      <div class="src">来源：${c.source}</div>
+    </div>`).join('');
+}
+
+// ---------- 指控 ----------
+function pickAccuseSuspect(id, el) {
+  accuseSuspect = id;
+  document.querySelectorAll('#accuse-suspects .suspect-card').forEach(x => x.classList.remove('selected'));
+  el.classList.add('selected');
+}
+function renderEvidence() {
+  const el = document.getElementById('accuse-evid');
+  if (!clueDetails.length) { el.innerHTML = `<div class="empty">暂无证据可提交</div>`; return; }
+  el.innerHTML = clueDetails.map(c => `
+    <label class="evid-item">
+      <input type="checkbox" value="${c.id}">
+      <div><div class="t">${c.title}</div><div class="d">${c.desc}</div></div>
+    </label>`).join('');
+}
+
+async function submitAccuse() {
+  if (!accuseSuspect) { alert('请先选择指控谁！'); return; }
+  const evids = [...document.querySelectorAll('#accuse-evid input:checked')].map(i => i.value);
+  if (!evids.length) { alert('请选择至少一条证据！'); return; }
+  const btn = document.getElementById('accuse-btn');
+  btn.disabled = true; btn.textContent = '🔨 裁定中……';
+  const res = await fetchJSON('/api/accuse', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({case_id: CASE.id, suspect_id: accuseSuspect, evidence_ids: evids})
+  });
+  btn.disabled = false; btn.textContent = '🔨 就是他！';
+  showVerdict(res);
+}
+
+function showVerdict(res) {
+  const box = document.getElementById('verdict-box');
+  const s = CASE.suspects.find(x => x.id === accuseSuspect);
+  let html = '';
+  if (res.result === 'convicted') {
+    html = `<div class="verdict ok"><div class="big">⚖️</div><h2>定罪成功！</h2>
+      <div class="sub">你指控了 ${s.name} —— 他就是凶手。</div>
+      <div class="truth-box"><div class="lbl">📜 案件真相</div>${res.truth.summary}</div>`;
+  } else if (res.result === 'insufficient') {
+    html = `<div class="verdict"><div class="big">📋</div><h2>证据不足</h2>
+      <div class="sub">${s.name} 确实可疑，但你的证据链不够硬。法官驳回了指控。</div>
+      <div class="truth-box"><div class="lbl">💡 提示</div>关键证据（标 ⭐）是定罪的关键。再去审问，收集能钉死凶手的证据。</div>`;
+  } else {
+    html = `<div class="verdict bad"><div class="big">💔</div><h2>指控失败</h2>
+      <div class="sub">${s.name} 是无辜的。真凶……仍然逍遥法外。</div>
+      <div class="truth-box"><div class="lbl">📜 案件真相</div>${res.truth.summary}</div>`;
+  }
+  if (res.result === 'convicted') {
+    html += `<button class="btn btn-primary" onclick="restartCase()">🔍 破解下一个案件</button>`;
+  } else {
+    html += `<button class="btn btn-primary" onclick="restartCase()">🔄 重新破案</button>`;
+  }
+  box.innerHTML = html;
+  go('screen-verdict');
+}
+
+// 重新破案：保留在当前案件，重置该案件的调查进度（线索/审问历史清空）
+function restartCase() {
+  if (!CASE) return;
+  // 重置当前案件进度
+  ownedClues = [];
+  clueDetails = [];
+  history = [];
+  currentSuspect = null;
+  accuseSuspect = null;
+  updateClueBadge();
+  buildSuspectList();
+  buildAccuseList();
+  saveProgress();
+  go('screen-suspects');
+}
+
+function escapeHtml(s) { return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// 回车发送
+document.getElementById('chat-input').addEventListener('keydown', e => { if (e.key === 'Enter') sendMsg(); });
+</script>
+</body>
+</html>

@@ -455,6 +455,14 @@ function spendAP(n) {
   return actionPoints;
 }
 
+// 退还行动点（请求失败/超时未获得回答时调用，避免玩家白扣点）
+function refundAP(n) {
+  actionPoints = Math.min(AP_START, actionPoints + n);
+  updateAPDisplay();
+  saveProgress();
+  return actionPoints;
+}
+
 // 行动点用尽：禁止继续提问，强制指控
 function apExhausted() {
   return actionPoints <= 0;
@@ -795,22 +803,40 @@ async function sendMsg() {
   addMsg('player', escapeHtml(q));
   showTyping();
   try {
-    // 前端生成 task_id：Netlify background function 返回 202 空 body，只能靠本地 task_id 轮询
+    // 前端生成 task_id：异步后端（Netlify/Cloudflare）靠 task_id 轮询
     const taskId = 't' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
-    const res = await fetchJSON('/api/chat', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        case_id: CASE.id, suspect_id: currentSuspect.id,
-        question: q, history, owned_clues: ownedClues, mode: difficulty,
-        task_id: taskId
-      })
-    });
+    const body = {
+      case_id: CASE.id, suspect_id: currentSuspect.id,
+      question: q, history, owned_clues: ownedClues, mode: difficulty,
+      task_id: taskId
+    };
+    let res = await fetchJSON('/api/chat', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body) });
+
+    // 提交失败（网络错误）→ 自动重试一次，不额外扣点
+    if (res && res.__network_error) {
+      addMsg('sys', '🔄 网络抖动，自动重试中…');
+      await new Promise(r => setTimeout(r, 2000));
+      res = await fetchJSON('/api/chat', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body) });
+    }
+
     let result = res;
-    // 异步后端（Netlify/Cloudflare）：响应含 task_id、无 body、或网络错误 → 用本地 task_id 轮询
-    if (!res || res.__network_error || Object.keys(res).length === 0 || res.task_id) {
+    // 重试后仍网络错误 → 任务大概率没提交成功，直接失败退款（不等轮询）
+    if (res && res.__network_error) {
+      refundAP(1);
+      hideTyping();
+      addMsg('sys', '⚠️ 网络连接失败，已退还行动点，请重试。');
+      return;
+    }
+    // 异步后端：响应含 task_id、无 body、或网络错误 → 用本地 task_id 轮询
+    if (!res || Object.keys(res).length === 0 || res.task_id) {
       result = await pollChatResult(taskId);
-      if (!result) { hideTyping(); addMsg('sys', '⚠️ 请求超时（本地模型响应较慢），请稍后重试。'); return; }
+    }
+    if (!result || result.status === 'timeout' || (result.error && !result.reply)) {
+      // 失败/超时：退还提问点数，不惩罚玩家
+      refundAP(1);
+      hideTyping();
+      addMsg('sys', result && result.error ? '⚠️ 后端出错：' + result.error + '（已退还行动点）' : '⚠️ 本地模型响应超时，已退还行动点，请重试。');
+      return;
     }
     if (result.error) { hideTyping(); addMsg('sys', '⚠️ 后端出错：' + result.error); return; }
     hideTyping();
@@ -827,21 +853,31 @@ async function sendMsg() {
     saveProgress();
   } catch(e) {
     hideTyping();
-    addMsg('sys', '⚠️ 网络错误：' + e.message);
+    refundAP(1);  // 异常也退还，不惩罚玩家
+    addMsg('sys', '⚠️ 网络错误：' + e.message + '（已退还行动点）');
   }
 }
 
-// 轮询后台任务结果（最多等 120 秒，每 2.5 秒一次）
-async function pollChatResult(taskId, timeoutMs = 120000) {
+// 轮询后台任务结果：第一阶段 150 秒常规等待；超时后自动延长 60 秒（本地模型 15-47s + 排队可能更久）
+// 返回 {status:'done'|'error'|'timeout', ...} —— timeout 表示最终失败，调用方应退还点数
+async function pollChatResult(taskId, timeoutMs = 150000) {
   const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
+  const extendedDeadline = deadline + 60000;
+  let reported = false;
+  while (Date.now() < extendedDeadline) {
     await new Promise(r => setTimeout(r, 2500));
+    // 常规期每 10 秒提示一次"仍在等待"（不报错，让玩家知道没卡死）
+    if (!reported && Date.now() > deadline) {
+      reported = true;
+      addMsg('sys', '⏳ 本地模型响应较慢，仍在等待回复…（不会扣除额外点数）');
+    }
     try {
       const r = await fetchJSON(`/api/chat-result?task=${encodeURIComponent(taskId)}`);
       if (r.status === 'done' || r.status === 'error') return r;
+      if (r.__network_error) { /* 网络抖动，继续轮询 */ }
     } catch (e) { /* 继续轮询 */ }
   }
-  return null;
+  return { status: 'timeout' };
 }
 
 function showCluePop(clue) {

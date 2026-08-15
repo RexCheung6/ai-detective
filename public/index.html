@@ -89,6 +89,15 @@
   .help-title { font-size:14px; font-weight:700; margin-bottom:8px; color:var(--accent2); }
   .help-text { font-size:13px; color:#c9ccd4; line-height:1.9; }
   .scene-box { text-align:left; background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:16px; font-size:13.5px; line-height:1.9; color:#b6bcc8; margin-top:14px; }
+  .relations-box { text-align:left; background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:14px 16px; margin-top:14px; }
+  .relations-title { font-size:13px; font-weight:700; color:var(--accent2); margin-bottom:10px; letter-spacing:.5px; }
+  .rel-item { display:flex; align-items:flex-start; gap:10px; padding:7px 0; border-bottom:1px dashed var(--border); }
+  .rel-item:last-child { border-bottom:none; }
+  .rel-ava { font-size:20px; line-height:1.3; }
+  .rel-body { flex:1; min-width:0; }
+  .rel-name { font-size:13.5px; color:#e8eaf0; font-weight:600; }
+  .rel-role { font-size:12px; color:var(--accent2); margin-left:6px; }
+  .rel-motive { font-size:12px; color:#8a93a3; margin-top:2px; line-height:1.6; }
   .hint { color:var(--dim); font-size:12px; margin-top:14px; }
   .btn { display:block; width:100%; padding:15px; border:none; border-radius:14px; font-size:16px; font-weight:700; cursor:pointer; letter-spacing:2px; }
   .btn-primary { background:linear-gradient(135deg, var(--accent2), var(--accent)); color:#1a1405; box-shadow:0 6px 24px rgba(201,162,39,.35); margin-top:24px; }
@@ -236,6 +245,10 @@
         <div class="case-intro" id="intro-text"></div>
         <div class="scene-box" id="scene-text"></div>
         <div class="hint" id="hint-text"></div>
+        <div class="relations-box">
+          <div class="relations-title">🧾 涉案人员</div>
+          <div id="relations-list"></div>
+        </div>
         <button class="btn btn-primary" onclick="showSuspects()">开始调查 →</button>
         <button class="btn btn-ghost" onclick="resetIntro()">← 换一个案件</button>
       </div>
@@ -604,6 +617,7 @@ async function restoreProgress(prog) {
     `<div class="scene-label">🏚 案发现场</div>${CASE.scene}`;
   document.getElementById('hint-text').textContent = '⏱ ' + (CASE.time_limit_hint || '');
   document.getElementById('suspect-count').textContent = `(${CASE.suspects.length}人)`;
+  renderRelations();
   // 还原游戏状态
   ownedClues = prog.ownedClues || [];
   clueDetails = prog.clueDetails || [];
@@ -678,6 +692,7 @@ async function selectCase(id) {
     `<div class="scene-label">🏚 案发现场</div>${CASE.scene}`;
   document.getElementById('hint-text').textContent = '⏱ ' + (CASE.time_limit_hint || '');
   document.getElementById('suspect-count').textContent = `(${CASE.suspects.length}人)`;
+  renderRelations();
   // 重置游戏状态
   ownedClues = [];
   clueDetails = [];
@@ -698,6 +713,19 @@ function resetIntro() {
   document.getElementById('case-detail').style.display = 'none';
   document.querySelector('#screen-intro h1').textContent = '选择案件';
   document.querySelector('#screen-intro .era').textContent = '每个案件都是全新的谜题';
+}
+
+function renderRelations() {
+  const el = document.getElementById('relations-list');
+  if (!el || !CASE) return;
+  el.innerHTML = (CASE.suspects || []).map(s => `
+    <div class="rel-item">
+      <div class="rel-ava">${s.emoji || '🧑'}</div>
+      <div class="rel-body">
+        <div><span class="rel-name">${escapeHtml(s.name)}</span><span class="rel-role">${escapeHtml(s.role || '')}</span></div>
+        <div class="rel-motive">${s.motive ? '🎯 动机：' + escapeHtml(s.motive) : ''}</div>
+      </div>
+    </div>`).join('');
 }
 
 function buildSuspectList() {

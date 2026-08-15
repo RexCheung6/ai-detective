@@ -38,6 +38,7 @@ export function publicCase(caseData, mode = 'normal') {
     appearance: s.appearance || '',
     personality: s.personality || '',
     opening_line: s.opening_line || '',
+    motive: s.motive || '',          // 动机（开局可见，帮助玩家推理）
     clues_available: s.clues_available || [],
     suggested_questions: s.suggested_questions || [],
   }));

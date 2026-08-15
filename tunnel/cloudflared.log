@@ -1116,3 +1116,13 @@ Uploading... (1/1)
 🌎 Deploying...
 ✨ Deployment complete! Take a peek over at https://c31e9cc1.ai-detective-game.pages.dev
 [2026-08-15 20:41:00] ✅ Cloudflare Pages 已同步新隧道地址（chat 验证通过）
+[2026-08-15 20:41:32] ✅ 隧道正常 (https://defendant-sage-chan-smell.trycloudflare.com)
+[2026-08-15 20:43:35] ✅ 隧道正常 (https://defendant-sage-chan-smell.trycloudflare.com)
+2026-08-15T12:44:48Z ERR  error="Incoming request ended abruptly: context canceled" connIndex=0 event=1 ingressRule=0 originService=http://localhost:1234
+2026-08-15T12:44:48Z ERR Request failed error="Incoming request ended abruptly: context canceled" connIndex=0 dest=https://defendant-sage-chan-smell.trycloudflare.com/v1/chat/completions event=0 ip=198.41.200.33 type=http
+[2026-08-15 20:45:38] ✅ 隧道正常 (https://defendant-sage-chan-smell.trycloudflare.com)
+[2026-08-15 20:47:40] ✅ 隧道正常 (https://defendant-sage-chan-smell.trycloudflare.com)
+[2026-08-15 20:49:47] ✅ 隧道正常 (https://defendant-sage-chan-smell.trycloudflare.com)
+2026-08-15T12:51:15Z ERR  error="Incoming request ended abruptly: context canceled" connIndex=0 event=1 ingressRule=0 originService=http://localhost:1234
+2026-08-15T12:51:15Z ERR Request failed error="Incoming request ended abruptly: context canceled" connIndex=0 dest=https://defendant-sage-chan-smell.trycloudflare.com/v1/chat/completions event=0 ip=198.41.200.33 type=http
+[2026-08-15 20:51:50] ✅ 隧道正常 (https://defendant-sage-chan-smell.trycloudflare.com)

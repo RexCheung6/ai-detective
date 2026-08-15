@@ -472,6 +472,19 @@ let difficulty = 'normal'; // 难度：normal 普通 / hard 困难（真相反�
 const chatBox = document.getElementById('chat-box');
 
 async function fetchJSON(url, opts) {
+  // Netlify 环境：/api/* → /.netlify/functions/*（functions 直接路径，绕开 SPA 回退）
+  if (location.hostname.includes('netlify.app')) {
+    const q = url.includes('?') ? url.slice(url.indexOf('?')) : '';
+    const base = url.split('?')[0];
+    const map = {
+      '/api/cases': '/.netlify/functions/cases',
+      '/api/case': '/.netlify/functions/case',
+      '/api/chat': '/.netlify/functions/chat',
+      '/api/chat/result': '/.netlify/functions/chat-result',
+      '/api/accuse': '/.netlify/functions/accuse',
+    };
+    url = (map[base] || base) + q;
+  }
   const r = await fetch(url, opts);
   return r.json();
 }
@@ -750,6 +763,7 @@ async function sendMsg() {
   addMsg('player', escapeHtml(q));
   showTyping();
   try {
+    // 本地 server.py 返回 {reply,...}；Netlify 返回 {task_id}，需要轮询
     const res = await fetchJSON('/api/chat', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
@@ -758,23 +772,43 @@ async function sendMsg() {
         question: q, history, owned_clues: ownedClues, mode: difficulty
       })
     });
+    if (res.error) { hideTyping(); addMsg('sys', '⚠️ 后端出错：' + res.error); return; }
+    let result = res;
+    if (res.task_id) {
+      // Netlify 后台模式：轮询结果
+      result = await pollChatResult(res.task_id);
+      if (!result) { hideTyping(); addMsg('sys', '⚠️ 请求超时（本地模型响应较慢），请稍后重试。'); return; }
+    }
+    if (result.error) { hideTyping(); addMsg('sys', '⚠️ 后端出错：' + result.error); return; }
     hideTyping();
-    if (res.error) { addMsg('sys', '⚠️ 后端出错：' + res.error); return; }
     history.push({role:'user', content:q});
-    history.push({role:'assistant', content:res.reply});
-    addMsg('suspect', escapeHtml(res.reply), currentSuspect.emoji, res.mood);
-    if (res.new_clues && res.new_clues.length) {
-      res.new_clues.forEach(c => {
+    history.push({role:'assistant', content:result.reply});
+    addMsg('suspect', escapeHtml(result.reply), currentSuspect.emoji, result.mood);
+    if (result.new_clues && result.new_clues.length) {
+      result.new_clues.forEach(c => {
         ownedClues.push(c.id); clueDetails.push(c);
       });
       updateClueBadge();
-      showCluePop(res.new_clues[0]);
+      showCluePop(result.new_clues[0]);
     }
     saveProgress();
   } catch(e) {
     hideTyping();
     addMsg('sys', '⚠️ 网络错误：' + e.message);
   }
+}
+
+// 轮询后台任务结果（最多等 120 秒，每 2.5 秒一次）
+async function pollChatResult(taskId, timeoutMs = 120000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    await new Promise(r => setTimeout(r, 2500));
+    try {
+      const r = await fetchJSON(`/api/chat/result?task=${encodeURIComponent(taskId)}`);
+      if (r.status === 'done' || r.status === 'error') return r;
+    } catch (e) { /* 继续轮询 */ }
+  }
+  return null;
 }
 
 function showCluePop(clue) {

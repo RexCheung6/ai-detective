@@ -1,0 +1,37 @@
+[build]
+  publish = "public"
+
+[functions]
+  directory = "netlify/functions"
+
+# /api/* → Functions（前端主要走 functions 直接路径，这里是双保险）
+[[redirects]]
+  from = "/api/cases"
+  to = "/.netlify/functions/cases"
+  status = 200
+
+[[redirects]]
+  from = "/api/case"
+  to = "/.netlify/functions/case"
+  status = 200
+
+[[redirects]]
+  from = "/api/chat"
+  to = "/.netlify/functions/chat"
+  status = 200
+
+[[redirects]]
+  from = "/api/chat/result"
+  to = "/.netlify/functions/chat-result"
+  status = 200
+
+[[redirects]]
+  from = "/api/accuse"
+  to = "/.netlify/functions/accuse"
+  status = 200
+
+# SPA 回退：仅非 API 路径返回 index.html
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

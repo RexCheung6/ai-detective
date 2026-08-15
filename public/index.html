@@ -475,7 +475,10 @@ async function fetchJSON(url, opts) {
   // Netlify 环境：v2 functions 用 config.path 暴露在 /api/*（默认 /.netlify/functions/* 会 404）
   // 所以保持 /api/* 原路径即可，无需映射
   const r = await fetch(url, opts);
-  return r.json();
+  // background function 返回 202 + 空 body → 容错返回 {}
+  const text = await r.text();
+  if (!text.trim()) return {};
+  return JSON.parse(text);
 }
 
 // ---------- 难度与玩法说明 ----------
@@ -752,20 +755,21 @@ async function sendMsg() {
   addMsg('player', escapeHtml(q));
   showTyping();
   try {
-    // 本地 server.py 返回 {reply,...}；Netlify 返回 {task_id}，需要轮询
+    // 前端生成 task_id：Netlify background function 返回 202 空 body，只能靠本地 task_id 轮询
+    const taskId = 't' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
     const res = await fetchJSON('/api/chat', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
         case_id: CASE.id, suspect_id: currentSuspect.id,
-        question: q, history, owned_clues: ownedClues, mode: difficulty
+        question: q, history, owned_clues: ownedClues, mode: difficulty,
+        task_id: taskId
       })
     });
-    if (res.error) { hideTyping(); addMsg('sys', '⚠️ 后端出错：' + res.error); return; }
     let result = res;
-    if (res.task_id) {
-      // Netlify 后台模式：轮询结果
-      result = await pollChatResult(res.task_id);
+    // Netlify 后台模式：202 空 body → 用本地 task_id 轮询
+    if (res && Object.keys(res).length === 0) {
+      result = await pollChatResult(taskId);
       if (!result) { hideTyping(); addMsg('sys', '⚠️ 请求超时（本地模型响应较慢），请稍后重试。'); return; }
     }
     if (result.error) { hideTyping(); addMsg('sys', '⚠️ 后端出错：' + result.error); return; }

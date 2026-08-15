@@ -1126,3 +1126,22 @@ Uploading... (1/1)
 2026-08-15T12:51:15Z ERR  error="Incoming request ended abruptly: context canceled" connIndex=0 event=1 ingressRule=0 originService=http://localhost:1234
 2026-08-15T12:51:15Z ERR Request failed error="Incoming request ended abruptly: context canceled" connIndex=0 dest=https://defendant-sage-chan-smell.trycloudflare.com/v1/chat/completions event=0 ip=198.41.200.33 type=http
 [2026-08-15 20:51:50] ✅ 隧道正常 (https://defendant-sage-chan-smell.trycloudflare.com)
+[2026-08-15 20:53:51] ✅ 隧道正常 (https://defendant-sage-chan-smell.trycloudflare.com)
+[2026-08-15 20:55:53] ✅ 隧道正常 (https://defendant-sage-chan-smell.trycloudflare.com)
+[2026-08-15 20:57:55] ✅ 隧道正常 (https://defendant-sage-chan-smell.trycloudflare.com)
+[2026-08-15 20:59:58] ✅ 隧道正常 (https://defendant-sage-chan-smell.trycloudflare.com)
+[2026-08-15 21:02:00] ✅ 隧道正常 (https://defendant-sage-chan-smell.trycloudflare.com)
+[2026-08-15 21:04:02] ✅ 隧道正常 (https://defendant-sage-chan-smell.trycloudflare.com)
+[2026-08-15 21:06:04] ✅ 隧道正常 (https://defendant-sage-chan-smell.trycloudflare.com)
+[2026-08-15 21:08:06] ✅ 隧道正常 (https://defendant-sage-chan-smell.trycloudflare.com)
+[2026-08-15 21:10:08] ✅ 隧道正常 (https://defendant-sage-chan-smell.trycloudflare.com)
+[2026-08-15 21:12:10] ✅ 隧道正常 (https://defendant-sage-chan-smell.trycloudflare.com)
+[2026-08-15 21:14:11] ✅ 隧道正常 (https://defendant-sage-chan-smell.trycloudflare.com)
+[2026-08-15 21:16:12] ✅ 隧道正常 (https://defendant-sage-chan-smell.trycloudflare.com)
+[2026-08-15 21:18:14] ✅ 隧道正常 (https://defendant-sage-chan-smell.trycloudflare.com)
+[2026-08-15 21:20:15] ✅ 隧道正常 (https://defendant-sage-chan-smell.trycloudflare.com)
+[2026-08-15 21:22:17] ✅ 隧道正常 (https://defendant-sage-chan-smell.trycloudflare.com)
+[2026-08-15 21:24:20] ✅ 隧道正常 (https://defendant-sage-chan-smell.trycloudflare.com)
+[2026-08-15 21:26:22] ✅ 隧道正常 (https://defendant-sage-chan-smell.trycloudflare.com)
+2026-08-15T13:27:47Z ERR  error="Incoming request ended abruptly: context canceled" connIndex=0 event=1 ingressRule=0 originService=http://localhost:1234
+2026-08-15T13:27:47Z ERR Request failed error="Incoming request ended abruptly: context canceled" connIndex=0 dest=https://defendant-sage-chan-smell.trycloudflare.com/v1/chat/completions event=0 ip=198.41.200.33 type=http

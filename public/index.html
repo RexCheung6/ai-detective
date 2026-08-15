@@ -723,7 +723,7 @@ function renderRelations() {
       <div class="rel-ava">${s.emoji || '🧑'}</div>
       <div class="rel-body">
         <div><span class="rel-name">${escapeHtml(s.name)}</span><span class="rel-role">${escapeHtml(s.role || '')}</span></div>
-        <div class="rel-motive">${s.motive ? '🎯 动机：' + escapeHtml(s.motive) : ''}</div>
+        <div class="rel-motive">${s.background ? escapeHtml(s.background) : ''}</div>
       </div>
     </div>`).join('');
 }

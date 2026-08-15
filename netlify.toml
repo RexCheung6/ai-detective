@@ -4,7 +4,7 @@
 [functions]
   directory = "netlify/functions"
 
-# /api/* → Functions（前端主要走 functions 直接路径，这里是双保险）
+# /api/* → Functions（前端主要走 /.netlify/functions/* 直接路径，这是双保险）
 [[redirects]]
   from = "/api/cases"
   to = "/.netlify/functions/cases"
@@ -30,8 +30,6 @@
   to = "/.netlify/functions/accuse"
   status = 200
 
-# SPA 回退：仅非 API 路径返回 index.html
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+# 注意：不配置 SPA 回退（/* → /index.html）——
+# 它会优先于 functions 路由，把 /.netlify/functions/* 也吞掉。
+# 本游戏是单页无路由，无需回退。

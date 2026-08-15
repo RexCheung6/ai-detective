@@ -472,19 +472,8 @@ let difficulty = 'normal'; // 难度：normal 普通 / hard 困难（真相反�
 const chatBox = document.getElementById('chat-box');
 
 async function fetchJSON(url, opts) {
-  // Netlify 环境：/api/* → /.netlify/functions/*（functions 直接路径，绕开 SPA 回退）
-  if (location.hostname.includes('netlify.app')) {
-    const q = url.includes('?') ? url.slice(url.indexOf('?')) : '';
-    const base = url.split('?')[0];
-    const map = {
-      '/api/cases': '/.netlify/functions/cases',
-      '/api/case': '/.netlify/functions/case',
-      '/api/chat': '/.netlify/functions/chat',
-      '/api/chat/result': '/.netlify/functions/chat-result',
-      '/api/accuse': '/.netlify/functions/accuse',
-    };
-    url = (map[base] || base) + q;
-  }
+  // Netlify 环境：v2 functions 用 config.path 暴露在 /api/*（默认 /.netlify/functions/* 会 404）
+  // 所以保持 /api/* 原路径即可，无需映射
   const r = await fetch(url, opts);
   return r.json();
 }

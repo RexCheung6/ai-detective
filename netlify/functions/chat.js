@@ -111,13 +111,19 @@ export default async (req) => {
     body = await req.json();
     taskId = body.task_id || `t${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   } catch (e) {
-    // body 读不到也返回 202，后台任务会用默认参数尝试
     body = body || {};
     taskId = taskId || `t${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   }
+  // 决定性测试：在 handler 内 await 写入 started 标记（若成功说明 Blobs 在 background 下可用）
+  try {
+    await getStore({ name: STORE_NAME }).set(`${taskId}_handler`, JSON.stringify({ ts: Date.now(), hasBody: !!body, bodyKeys: Object.keys(body) }));
+  } catch (e) {
+    try {
+      await getStore({ name: STORE_NAME }).set(`${taskId}_handler`, JSON.stringify({ error: String(e), ts: Date.now() }));
+    } catch (_) {}
+  }
   // 触发后台任务（不等待）
   runChatTask(body, taskId).catch(e => {
-    // 最后兜底：把错误写进 Blobs 方便排查
     try {
       getStore({ name: STORE_NAME }).set(taskId, JSON.stringify({ status: 'error', error: String(e), ts: Date.now() }));
     } catch (_) {}

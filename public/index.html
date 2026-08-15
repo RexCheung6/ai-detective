@@ -189,6 +189,10 @@
 
   <!-- 开场 -->
   <div class="screen" id="screen-intro">
+    <div class="topbar">
+      <button class="icon-btn" onclick="backToAuthOrCases()" title="返回登录">🚪</button>
+      <span class="title">案件</span>
+    </div>
     <div class="scroll"><div class="intro-inner">
       <div class="badge">AI 侦探 · 交互推理</div>
       <div class="logo">🕵️</div>
@@ -208,6 +212,7 @@
   <!-- 嫌疑人列表 -->
   <div class="screen" id="screen-suspects">
     <div class="topbar">
+      <button class="icon-btn" onclick="backToCaseDetail()">←</button>
       <span class="title">嫌疑人 <span id="suspect-count"></span></span>
       <button class="icon-btn" onclick="showNotebook()">📒 证据 <span id="clue-count-badge" style="color:var(--accent2)">0</span></button>
       <button class="icon-btn" onclick="logout()" title="退出登录">🚪</button>
@@ -332,6 +337,7 @@ async function doLogin() {
 }
 
 function logout() {
+  if (!confirm('确定要退出登录吗？\n你的游戏进度已保存，下次登录可以继续。')) return;
   saveProgress();
   currentUser = null;
   localStorage.removeItem(SESSION_KEY);
@@ -340,6 +346,9 @@ function logout() {
   switchAuth('login');
   go('screen-auth');
 }
+
+// 案件选择页的退出（topbar 🚪）：也走确认
+function backToAuthOrCases() { logout(); }
 
 // ==================== 进度保存/恢复 ====================
 function saveProgress() {
@@ -561,6 +570,13 @@ function go(id) {
   if (currentUser && CASE && id !== 'screen-auth' && id !== 'screen-verdict') saveProgress();
 }
 function showSuspects() { go('screen-suspects'); }
+function backToCaseDetail() {
+  // 嫌疑人列表 → 案件详情（开场页），重置审问状态但保留案件和线索
+  currentSuspect = null;
+  history = [];
+  saveProgress();
+  go('screen-intro');
+}
 function showNotebook() { go('screen-notebook'); renderNotebook(); }
 function backFromNotebook() { currentSuspect ? go('screen-interrogation') : go('screen-suspects'); }
 function backToSuspects() { history = []; currentSuspect = null; saveProgress(); go('screen-suspects'); }
@@ -715,12 +731,26 @@ function showVerdict(res) {
       <div class="truth-box"><div class="lbl">📜 案件真相</div>${res.truth.summary}</div>`;
   }
   if (res.result === 'convicted') {
-    html += `<button class="btn btn-primary" onclick="restartCase()">🔍 破解下一个案件</button>`;
+    html += `<button class="btn btn-primary" onclick="goNextCase()">🔍 破解下一个案件</button>`;
   } else {
     html += `<button class="btn btn-primary" onclick="restartCase()">🔄 重新破案</button>`;
   }
   box.innerHTML = html;
   go('screen-verdict');
+}
+
+// 定罪成功 → 回到案件选择列表（清除当前案件进度）
+function goNextCase() {
+  clearProgress();
+  ownedClues = [];
+  clueDetails = [];
+  history = [];
+  currentSuspect = null;
+  accuseSuspect = null;
+  CASE = null;
+  updateClueBadge();
+  resetIntro();
+  go('screen-intro');
 }
 
 // 重新破案：保留在当前案件，重置该案件的调查进度（线索/审问历史清空）

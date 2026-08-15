@@ -25,6 +25,7 @@ export function publicCase(caseData, mode = 'normal') {
       id: c.id,
       title: (o.title || c.title),
       desc: (o.desc || c.desc),
+      source: c.source || '',
       is_key: keySet ? keySet.has(c.id) : !!c.is_key,
     };
   });
@@ -32,8 +33,12 @@ export function publicCase(caseData, mode = 'normal') {
     id: s.id,
     name: s.name,
     role: s.role,
-    avatar: s.avatar || '',
-    bio: s.bio || '',
+    emoji: s.emoji || '🧑',
+    age: s.age || '',
+    appearance: s.appearance || '',
+    personality: s.personality || '',
+    opening_line: s.opening_line || '',
+    clues_available: s.clues_available || [],
     suggested_questions: s.suggested_questions || [],
   }));
   return {
@@ -42,6 +47,7 @@ export function publicCase(caseData, mode = 'normal') {
     era: caseData.era,
     intro: caseData.intro,
     scene: caseData.scene || '',
+    time_limit_hint: caseData.time_limit_hint || '',
     suspects,
     clues,
     victim: caseData.victim || '',

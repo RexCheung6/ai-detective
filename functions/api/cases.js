@@ -8,7 +8,9 @@ import nightclub from '../../cases/nightclub.json';
 export const onRequest = async ({ request }) => {
   if (request.method === 'OPTIONS') return corsPreflight();
   const list = [manor, station, magic, nightclub].map(c => ({
-    id: c.id, title: c.title, era: c.era, intro: (c.intro || '').slice(0, 80),
+    id: c.id, title: c.title, era: c.era,
+    intro: (c.intro || '').slice(0, 80),
+    suspect_count: (c.suspects || []).length,
   }));
   return corsJson(list);
 };

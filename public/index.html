@@ -415,6 +415,7 @@ function saveProgress() {
     screen: document.querySelector('.screen.active')?.id || '',
     suspectId: currentSuspect ? currentSuspect.id : null,
     history,
+    histories,        // 按嫌疑人独立保存的对话历史（切换/返回不丢失）
     ownedClues,
     clueDetails,
     accuseSuspect,
@@ -470,7 +471,8 @@ function apExhausted() {
 
 let CASE = null;
 let currentSuspect = null;
-let history = [];          // 当前审问的对话历史（发送给后端）
+let history = [];          // 当前审问的对话历史（发送给后端，指向 histories[currentSuspect.id]）
+let histories = {};        // 按嫌疑人独立保存对话历史 { suspectId: [...] }，切换/返回不丢失
 let ownedClues = [];       // 已收集线索 id
 let clueDetails = [];      // 已收集线索详情
 let accuseSuspect = null;  // 指控对象
@@ -605,7 +607,12 @@ async function restoreProgress(prog) {
   // 还原游戏状态
   ownedClues = prog.ownedClues || [];
   clueDetails = prog.clueDetails || [];
-  history = prog.history || [];
+  // 按嫌疑人独立历史（兼容旧存档：无 histories 时从 history 迁移）
+  histories = prog.histories || {};
+  if (!prog.histories && prog.history && prog.suspectId) {
+    histories[prog.suspectId] = prog.history;
+  }
+  history = (prog.suspectId && histories[prog.suspectId]) || prog.history || [];
   accuseSuspect = prog.accuseSuspect || null;
   actionPoints = (prog.actionPoints !== undefined) ? prog.actionPoints : AP_START;
   updateClueBadge();
@@ -676,6 +683,7 @@ async function selectCase(id) {
   clueDetails = [];
   currentSuspect = null;
   history = [];
+  histories = {};  // 新案件：清空所有嫌疑人的对话历史
   accuseSuspect = null;
   actionPoints = AP_START;  // 新案件重置行动点
   updateClueBadge();
@@ -725,15 +733,14 @@ function go(id) {
 }
 function showSuspects() { go('screen-suspects'); }
 function backToCaseDetail() {
-  // 嫌疑人列表 → 案件详情（开场页），重置审问状态但保留案件和线索
+  // 嫌疑人列表 → 案件详情（开场页），保留各嫌疑人审问历史（histories 独立保存）
   currentSuspect = null;
-  history = [];
   saveProgress();
   go('screen-intro');
 }
 function showNotebook() { go('screen-notebook'); renderNotebook(); }
 function backFromNotebook() { currentSuspect ? go('screen-interrogation') : go('screen-suspects'); }
-function backToSuspects() { history = []; currentSuspect = null; saveProgress(); go('screen-suspects'); }
+function backToSuspects() { currentSuspect = null; saveProgress(); go('screen-suspects'); }
 function showAccuse() {
   // 指控需要至少 2 行动点
   if (actionPoints < 2) {
@@ -747,11 +754,21 @@ function showAccuse() {
 function startInterrogation(id) {
   const s = CASE.suspects.find(x => x.id === id);
   currentSuspect = s;
-  history = [];
+  // 按嫌疑人独立历史：同一人再次进入保留对话记录，不同人各自独立
+  history = histories[id] || (histories[id] = []);
   document.getElementById('int-name').textContent = `审问 ${s.emoji} ${s.name}`;
-  document.getElementById('chat-box').innerHTML = '';
-  const el = document.getElementById('chat-box');
-  el.innerHTML += `<div class="msg suspect"><div class="ava">${s.emoji}</div><div><div class="bubble">${escapeHtml(s.opening_line)}</div><div class="mood-tag">${s.name}</div></div></div>`;
+  const box = document.getElementById('chat-box');
+  box.innerHTML = '';
+  box.innerHTML += `<div class="msg suspect"><div class="ava">${s.emoji}</div><div><div class="bubble">${escapeHtml(s.opening_line)}</div><div class="mood-tag">${s.name}</div></div></div>`;
+  // 重建该嫌疑人已有的对话历史（返回后再进来也能看到）
+  for (let i = 0; i < history.length; i += 2) {
+    if (history[i] && history[i].role === 'user') {
+      box.innerHTML += `<div class="msg player"><div class="ava">🧑‍⚖️</div><div class="bubble">${escapeHtml(history[i].content)}</div></div>`;
+    }
+    if (history[i+1] && history[i+1].role === 'assistant') {
+      box.innerHTML += `<div class="msg suspect"><div class="ava">${s.emoji}</div><div><div class="bubble">${escapeHtml(history[i+1].content)}</div><div class="mood-tag">${s.name}</div></div></div>`;
+    }
+  }
   // 快捷提问：按当前嫌疑人的专属建议问题渲染（每个案件/嫌疑人不同）
   const asks = (s.suggested_questions && s.suggested_questions.length
     ? s.suggested_questions
@@ -759,6 +776,7 @@ function startInterrogation(id) {
   document.getElementById('quick-asks').innerHTML =
     asks.map(q => `<button onclick="quickAsk('${q.replace(/'/g, "\\'")}')">${q}</button>`).join('');
   go('screen-interrogation');
+  box.scrollTop = box.scrollHeight;
   document.getElementById('chat-input').focus();
 }
 
@@ -983,6 +1001,7 @@ function goNextCase() {
   ownedClues = [];
   clueDetails = [];
   history = [];
+  histories = {};
   currentSuspect = null;
   accuseSuspect = null;
   actionPoints = AP_START;
@@ -1000,6 +1019,7 @@ function restartCase() {
   ownedClues = [];
   clueDetails = [];
   history = [];
+  histories = {};
   currentSuspect = null;
   accuseSuspect = null;
   actionPoints = AP_START;

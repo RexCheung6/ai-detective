@@ -56,10 +56,41 @@ if [ "$HTTP_CODE" = "401" ] || [ "$HTTP_CODE" = "200" ]; then
 
     echo "[$(date '+%F %T')]   重新部署 Cloudflare Pages…" >> "$LOG_FILE"
     cd /Users/rc/project/new/ai-detective || exit 1
-    if wrangler pages deploy public --project-name ai-detective-game --commit-dirty=true 2>&1 | tee -a "$LOG_FILE" | grep -q "Deployment complete"; then
-        echo "[$(date '+%F %T')] ✅ Cloudflare Pages 已同步新隧道地址" >> "$LOG_FILE"
-    else
-        echo "[$(date '+%F %T')] ⚠️ Cloudflare Pages 部署失败！请检查上方日志" >> "$LOG_FILE"
+    DEPLOY_OK=0
+    for attempt in 1 2 3; do
+        if wrangler pages deploy public --project-name ai-detective-game --commit-dirty=true 2>&1 | tee -a "$LOG_FILE" | grep -q "Deployment complete"; then
+            DEPLOY_OK=1
+            # 部署后验证 chat 链路（secret 传播可能有延迟，最多等 60 秒）
+            sleep 3
+            VERIFY_TASK="tunv_$(date +%s)"
+            curl -s --max-time 20 -X POST "https://ai-detective-game.pages.dev/api/chat" \
+                -H "Content-Type: application/json" \
+                -d "{\"case_id\":\"manor\",\"suspect_id\":\"butler\",\"question\":\"你好\",\"history\":[],\"owned_clues\":[],\"mode\":\"normal\",\"task_id\":\"$VERIFY_TASK\"}" > /dev/null 2>&1
+            VERIFY_OK=0
+            for v in 1 2 3 4 5 6; do
+                sleep 10
+                VRES=$(curl -s --max-time 20 "https://ai-detective-game.pages.dev/api/chat-result?task=$VERIFY_TASK")
+                if echo "$VRES" | grep -q '"status":"done"'; then
+                    VERIFY_OK=1
+                    break
+                fi
+                if echo "$VRES" | grep -q '"status":"error"'; then
+                    break  # 出错则重试部署
+                fi
+            done
+            if [ "$VERIFY_OK" = "1" ]; then
+                echo "[$(date '+%F %T')] ✅ Cloudflare Pages 已同步新隧道地址（chat 验证通过）" >> "$LOG_FILE"
+                break
+            fi
+            echo "[$(date '+%F %T')] ⚠️ 部署后 chat 验证失败（第 $attempt 次），等待后重试部署…" >> "$LOG_FILE"
+            sleep 10
+        else
+            echo "[$(date '+%F %T')] ⚠️ Cloudflare Pages 部署失败（第 $attempt 次）！" >> "$LOG_FILE"
+            sleep 10
+        fi
+    done
+    if [ "$DEPLOY_OK" != "1" ]; then
+        echo "[$(date '+%F %T')] ⚠️ 3 次部署均未通过验证，保留 URL 待下次重试" >> "$LOG_FILE"
         echo "$CURRENT_URL" > "$URL_FILE"
     fi
 else

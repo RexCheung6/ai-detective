@@ -500,11 +500,21 @@ async function fetchJSON(url, opts) {
       return { error: String(e.message || e) };
     }
   }
-  const r = await fetch(apiUrl, opts);
-  // background function 返回 202 + 空 body → 容错返回 {}
-  const text = await r.text();
-  if (!text.trim()) return {};
-  return JSON.parse(text);
+  // 带超时的 fetch（移动网络不稳定，等待太久会卡 UI）
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 30000);
+  try {
+    const r = await fetch(apiUrl, { ...opts, signal: controller.signal });
+    clearTimeout(timer);
+    // background function 返回 202 + 空 body → 容错返回 {}
+    const text = await r.text();
+    if (!text.trim()) return {};
+    return JSON.parse(text);
+  } catch (e) {
+    clearTimeout(timer);
+    // 网络错误标记：调用方可选择继续轮询（任务可能已提交成功）
+    return { __network_error: String(e.message || e) };
+  }
 }
 
 // ---------- 难度与玩法说明 ----------
@@ -793,8 +803,8 @@ async function sendMsg() {
       })
     });
     let result = res;
-    // Netlify 后台模式：202 空 body → 用本地 task_id 轮询
-    if (res && Object.keys(res).length === 0) {
+    // 异步后端（Netlify/Cloudflare）：响应含 task_id、无 body、或网络错误 → 用本地 task_id 轮询
+    if (!res || res.__network_error || Object.keys(res).length === 0 || res.task_id) {
       result = await pollChatResult(taskId);
       if (!result) { hideTyping(); addMsg('sys', '⚠️ 请求超时（本地模型响应较慢），请稍后重试。'); return; }
     }

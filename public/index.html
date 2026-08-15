@@ -75,6 +75,19 @@
   .auth-input:focus { border-color:var(--accent); }
   .auth-msg { min-height:20px; font-size:12.5px; color:var(--danger); margin-bottom:8px; text-align:left; line-height:1.5; }
   .auth-msg.ok { color:var(--ok); }
+  /* 难度选择 */
+  .diff-select { margin-bottom:18px; }
+  .diff-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .diff-card { background:var(--panel); border:2px solid var(--border); border-radius:14px; padding:14px 10px; text-align:center; cursor:pointer; transition:border-color .15s, background .15s; }
+  .diff-card.selected { border-color:var(--accent); background:rgba(201,162,39,.08); }
+  .diff-card .diff-icon { font-size:26px; margin-bottom:6px; }
+  .diff-card .diff-name { font-size:14px; font-weight:700; margin-bottom:4px; }
+  .diff-card .diff-desc { font-size:11px; color:var(--dim); line-height:1.6; }
+  /* 玩法说明 */
+  .help-box { display:flex; flex-direction:column; gap:14px; }
+  .help-sec { background:var(--panel); border:1px solid var(--border); border-left:3px solid var(--accent); border-radius:12px; padding:14px 16px; }
+  .help-title { font-size:14px; font-weight:700; margin-bottom:8px; color:var(--accent2); }
+  .help-text { font-size:13px; color:#c9ccd4; line-height:1.9; }
   .scene-box { text-align:left; background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:16px; font-size:13.5px; line-height:1.9; color:#b6bcc8; margin-top:14px; }
   .hint { color:var(--dim); font-size:12px; margin-top:14px; }
   .btn { display:block; width:100%; padding:15px; border:none; border-radius:14px; font-size:16px; font-weight:700; cursor:pointer; letter-spacing:2px; }
@@ -192,12 +205,32 @@
     <div class="topbar">
       <button class="icon-btn" onclick="backToAuthOrCases()" title="返回登录">🚪</button>
       <span class="title">案件</span>
+      <button class="icon-btn" onclick="showHelp()" title="玩法说明">❓</button>
     </div>
     <div class="scroll"><div class="intro-inner">
       <div class="badge">AI 侦探 · 交互推理</div>
       <div class="logo">🕵️</div>
       <h1>选择案件</h1>
       <div class="era">每个案件都是全新的谜题</div>
+
+      <!-- 难度选择 -->
+      <div class="diff-select">
+        <div class="section-title">难度模式</div>
+        <div class="diff-row">
+          <div class="diff-card" id="diff-normal" onclick="setDifficulty('normal')">
+            <div class="diff-icon">🧭</div>
+            <div class="diff-name">普通模式</div>
+            <div class="diff-desc">正常推理思路<br>真凶与线索一目了然</div>
+          </div>
+          <div class="diff-card" id="diff-hard" onclick="setDifficulty('hard')">
+            <div class="diff-icon">🌪️</div>
+            <div class="diff-name">困难模式</div>
+            <div class="diff-desc">真相大反转！<br>凶手与关键证据完全改变</div>
+          </div>
+        </div>
+        <div class="hint" id="diff-hint">💡 选择困难模式后，同一案件的凶手和证据链会反转，请抛开固有印象重新推理</div>
+      </div>
+
       <div id="case-list"></div>
       <div id="case-detail" style="display:none">
         <div class="case-intro" id="intro-text"></div>
@@ -207,6 +240,27 @@
         <button class="btn btn-ghost" onclick="resetIntro()">← 换一个案件</button>
       </div>
     </div></div>
+  </div>
+
+  <!-- 玩法说明 -->
+  <div class="screen" id="screen-help">
+    <div class="topbar"><button class="icon-btn" onclick="go('screen-intro')">←</button><span class="title">玩法说明</span></div>
+    <div class="scroll">
+      <div class="help-box">
+        <div class="help-sec"><div class="help-title">🎯 游戏目标</div>
+          <div class="help-text">找出每起案件的<b>真凶</b>。审问嫌疑人、收集证据、拼出真相，最终提出指控。</div></div>
+        <div class="help-sec"><div class="help-title">🎯 行动点（关键资源）</div>
+          <div class="help-text">每个案件有 <b>10 点行动点</b>：<br>· 审问提问消耗 <b>1 点</b><br>· 提出指控消耗 <b>2 点</b><br>· 行动点用尽后<b>无法再提问</b>，只能直接指控<br>· 证据不足被驳回会<b>扣 2 点</b>并返回继续调查<br>行动点有限，请想好再问！</div></div>
+        <div class="help-sec"><div class="help-title">🔍 审问技巧</div>
+          <div class="help-text">· 泛泛地问「你在哪」「你看到了什么」<b>不会得到线索</b><br>· 追问<b>具体细节</b>（时间、人物、物品、伤口、不在场证明）才能让嫌疑人松口<br>· 嫌疑人的<b>谎言</b>要靠你戳破，矛盾之处就是线索<br>· 快捷提问按钮是每个嫌疑人量身定制的突破口</div></div>
+        <div class="help-sec"><div class="help-title">📒 证据与指控</div>
+          <div class="help-text">· 线索会存入证据笔记本<br>· 标 <span class="keytag">关键</span> 的证据（⭐）是定罪的核心<br>· 指控时需要选择嫌疑人和证据：<b>凶手正确 + 至少 1 条关键证据</b>才能定罪<br>· 证据不足 = 扣 2 点继续查；冤枉好人 = 破案失败</div></div>
+        <div class="help-sec"><div class="help-title">🌪️ 困难模式（反转）</div>
+          <div class="help-text">困难模式下，案件的<b>真凶会换成另一个人</b>，关键证据也重新分配——原本无害的人可能才是凶手。请把普通模式的结论全部忘掉，重新推理。</div></div>
+        <div class="help-sec"><div class="help-title">💾 进度与账号</div>
+          <div class="help-text">· 游戏进度<b>自动保存</b>在本地，重新登录后回到上次界面<br>· 指控失败后点「重新破案」会留在当前案件重来<br>· 数据只存在你的设备上，不会上传</div></div>
+      </div>
+    </div>
   </div>
 
   <!-- 嫌疑人列表 -->
@@ -357,6 +411,7 @@ function saveProgress() {
   if (!currentUser || !CASE) return;
   const data = {
     caseId: CASE.id,
+    mode: difficulty,
     screen: document.querySelector('.screen.active')?.id || '',
     suspectId: currentSuspect ? currentSuspect.id : null,
     history,
@@ -413,12 +468,25 @@ let clueDetails = [];      // 已收集线索详情
 let accuseSuspect = null;  // 指控对象
 let actionPoints = 10;     // 行动点：提问-1，指控-2，用尽必须指控
 const AP_START = 10;
+let difficulty = 'normal'; // 难度：normal 普通 / hard 困难（真相反转）
 const chatBox = document.getElementById('chat-box');
 
 async function fetchJSON(url, opts) {
   const r = await fetch(url, opts);
   return r.json();
 }
+
+// ---------- 难度与玩法说明 ----------
+function setDifficulty(mode) {
+  difficulty = mode;
+  document.getElementById('diff-normal').classList.toggle('selected', mode === 'normal');
+  document.getElementById('diff-hard').classList.toggle('selected', mode === 'hard');
+  document.getElementById('diff-hint').textContent = mode === 'hard'
+    ? '🌪️ 困难模式已开启：凶手与关键证据已反转，请抛开固有印象重新推理！'
+    : '💡 选择困难模式后，同一案件的凶手和证据链会反转，请抛开固有印象重新推理';
+}
+
+function showHelp() { go('screen-help'); }
 
 // ---------- 加载案件 ----------
 (async function init() {
@@ -468,14 +536,18 @@ async function loadCases() {
 // 恢复存档：回到上次游玩界面
 async function restoreProgress(prog) {
   if (!prog || !prog.caseId) return;
+  difficulty = prog.mode || 'normal';
+  // 还原难度选择高亮
+  document.getElementById('diff-normal').classList.toggle('selected', difficulty === 'normal');
+  document.getElementById('diff-hard').classList.toggle('selected', difficulty === 'hard');
   try {
-    CASE = await fetchJSON(`/api/case?id=${prog.caseId}`);
+    CASE = await fetchJSON(`/api/case?id=${prog.caseId}&mode=${difficulty}`);
   } catch(e) { return; }
   // 还原案件详情界面
   document.getElementById('case-list').style.display = 'none';
   document.getElementById('case-detail').style.display = 'block';
   document.querySelector('#screen-intro h1').textContent = CASE.title;
-  document.querySelector('#screen-intro .era').textContent = CASE.era;
+  document.querySelector('#screen-intro .era').textContent = CASE.era + (difficulty === 'hard' ? ' · 🌪️ 困难' : '');
   document.getElementById('intro-text').textContent = CASE.intro;
   document.getElementById('scene-text').innerHTML =
     `<div class="scene-label">🏚 案发现场</div>${CASE.scene}`;
@@ -540,11 +612,11 @@ async function restoreProgress(prog) {
 }
 
 async function selectCase(id) {
-  CASE = await fetchJSON(`/api/case?id=${id}`);
+  CASE = await fetchJSON(`/api/case?id=${id}&mode=${difficulty}`);
   document.getElementById('case-list').style.display = 'none';
   document.getElementById('case-detail').style.display = 'block';
   document.querySelector('#screen-intro h1').textContent = CASE.title;
-  document.querySelector('#screen-intro .era').textContent = CASE.era;
+  document.querySelector('#screen-intro .era').textContent = CASE.era + (difficulty === 'hard' ? ' · 🌪️ 困难' : '');
   document.getElementById('intro-text').textContent = CASE.intro;
   document.getElementById('scene-text').innerHTML =
     `<div class="scene-label">🏚 案发现场</div>${CASE.scene}`;
@@ -683,7 +755,7 @@ async function sendMsg() {
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
         case_id: CASE.id, suspect_id: currentSuspect.id,
-        question: q, history, owned_clues: ownedClues
+        question: q, history, owned_clues: ownedClues, mode: difficulty
       })
     });
     hideTyping();
@@ -756,7 +828,7 @@ async function submitAccuse() {
   spendAP(2);  // 指控消耗 2 行动点
   const res = await fetchJSON('/api/accuse', {
     method: 'POST', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({case_id: CASE.id, suspect_id: accuseSuspect, evidence_ids: evids})
+    body: JSON.stringify({case_id: CASE.id, suspect_id: accuseSuspect, evidence_ids: evids, mode: difficulty})
   });
   btn.disabled = false; btn.textContent = '🔨 就是他！';
   showVerdict(res);

@@ -2,12 +2,11 @@
 """
 AI 侦探游戏后端代理
 - 托管前端静态文件 (public/)
-- /api/case    -> 返回脱敏案件数据（不含真相/秘密/谎言）
-- /api/chat    -> 组装审问 prompt，转发给 LLM（默认本地 LM Studio），解析 JSON 返回
+- /api/case    -> 返回脱敏案件数据（不含真相/秘密/谎言），支持 mode=normal|hard
+- /api/chat    -> 组装审问 prompt，转发给本地 LM Studio，解析 JSON 返回
 - /api/accuse  -> 判定指控结果（服务端裁决，玩家无法作弊）
 
-运行: python3 server.py            # 默认本地模型 (LM Studio localhost:1234)
-      BACKEND=deepseek python3 server.py   # 切到 deepseek 云端
+运行: python3 server.py   # 固定使用本地模型（DeepSeek 已禁用）
 """
 import json
 import os
@@ -38,21 +37,16 @@ def load_env():
 load_env()  # 必须在 BACKENDS 求值之前调用，否则 BACKENDS 用的是旧环境变量
 
 PORT = int(os.environ.get("PORT", 8899))
-BACKEND = os.environ.get("BACKEND", "local").lower()
+# 强制使用本地模型：DeepSeek 云端已禁用（发布测试阶段，本地模型能胜任就不接入）
+BACKEND = "local"
 
-# ---------- LLM 后端配置 ----------
+# ---------- LLM 后端配置（仅本地，DeepSeek 已移除） ----------
 BACKENDS = {
     "local": {
         "base_url": os.environ.get("LM_BASE_URL", "http://localhost:1234/v1"),
         "model": os.environ.get("LM_MODEL", "qwen/qwen3.6-35b-a3b"),
         "api_key": os.environ.get("LM_API_KEY", "lm-studio"),
         "label": "本地 LM Studio",
-    },
-    "deepseek": {
-        "base_url": "https://api.deepseek.com/v1",
-        "model": "deepseek-v4-flash",
-        "api_key": os.environ.get("DEEPSEEK_API_KEY", ""),
-        "label": "DeepSeek 云端",
     },
 }
 
@@ -66,8 +60,11 @@ def load_case(case_id: str) -> dict:
     return json.loads(path.read_text())
 
 
-def public_case(case: dict) -> dict:
-    """脱敏：只返回玩家该知道的信息"""
+def public_case(case: dict, mode: str = "normal") -> dict:
+    """脱敏：只返回玩家该知道的信息。mode=hard 时应用反转真相的关键线索重排"""
+    hm = case.get("hard_mode") if mode == "hard" else None
+    key_set = set(hm["key_clues"]) if hm else None
+    overrides = (hm or {}).get("clue_overrides", {})
     return {
         "id": case["id"],
         "title": case["title"],
@@ -91,8 +88,10 @@ def public_case(case: dict) -> dict:
             for s in case["suspects"]
         ],
         "clues": [
-            {"id": c["id"], "title": c["title"], "desc": c["desc"],
-             "source": c["source"], "is_key": c.get("is_key", False)}
+            {"id": c["id"], "title": c["title"],
+             "desc": overrides.get(c["id"], c["desc"]),
+             "source": c["source"],
+             "is_key": (c["id"] in key_set) if key_set else c.get("is_key", False)}
             for c in case["clues"]
         ],
     }
@@ -101,11 +100,18 @@ def public_case(case: dict) -> dict:
 # ---------- Prompt 组装 ----------
 
 
-def build_system_prompt(case: dict, suspect: dict) -> str:
+def build_system_prompt(case: dict, suspect: dict, mode: str = "normal") -> str:
     lies_text = "\n".join(
         f"- 话题「{l['topic']}」：你必须撒谎说「{l['lie']}」。真相是「{l['truth']}」，但绝不能承认。"
         for l in suspect["lies"]
     )
+    # 困难模式：注入反转真相提示（如果有该嫌疑人的反转设定）
+    hm_extra = ""
+    if mode == "hard":
+        hm = case.get("hard_mode", {})
+        extra = hm.get("suspect_extra", {}).get(suspect["id"], "")
+        if extra:
+            hm_extra = f"\n\n【困难模式·本案件特殊设定（必须遵守）】\n{extra}"
     clues_text = "\n".join(
         f"- {c['title']}：{c['desc']}"
         for c in case["clues"] if c["id"] in suspect["clues_available"]
@@ -128,7 +134,7 @@ def build_system_prompt(case: dict, suspect: dict) -> str:
 
 你的作案动机（你本人可能是清白的，但动机要合理）：
 {suspect['motive']}
-
+{hm_extra}
 角色行为准则：
 1. 用第一人称、口语化回答，符合你的性格和说话风格。**每轮只回答 1-2 句话（30字以内），绝不长篇大论。**
 2. 你是嫌疑人，不是侦探——永远不要主动说"我是凶手"或"某某是凶手"。
@@ -153,8 +159,8 @@ def build_system_prompt(case: dict, suspect: dict) -> str:
 
 def call_llm(system: str, history: list, user_msg: str) -> dict:
     cfg = BACKENDS[BACKEND]
-    if not cfg["api_key"] and BACKEND == "deepseek":
-        raise RuntimeError("DEEPSEEK_API_KEY 未配置，无法使用云端后端")
+    if not cfg["api_key"]:
+        raise RuntimeError("LM_API_KEY 未配置，无法调用本地模型")
 
     messages = [{"role": "system", "content": system}]
     # 只保留最近 8 轮对话，控制上下文长度（减少模型负担、加快响应）
@@ -165,7 +171,7 @@ def call_llm(system: str, history: list, user_msg: str) -> dict:
         "model": cfg["model"],
         "messages": messages,
         "temperature": 0.8,
-        "max_tokens": 2000,
+        "max_tokens": 4000,
         "stream": False,
         # Qwen 思考型模型：think=False / chat_template_kwargs 可关思维链加速。
         # 注意：不要传 enable_thinking=False —— 会让该模型输出空内容（token 全耗在思考上）
@@ -249,10 +255,11 @@ class Handler(BaseHTTPRequestHandler):
             import urllib.parse
             qs = urllib.parse.parse_qs(self.path.split("?", 1)[1])
             case_id = qs.get("id", ["manor"])[0]
+            mode = qs.get("mode", ["normal"])[0]
             if case_id not in CASES:
                 self._send_json({"error": f"case {case_id} not found"}, 404)
             else:
-                self._send_json(public_case(CASES[case_id]))
+                self._send_json(public_case(CASES[case_id], mode))
         elif self.path == "/api/case":
             self._send_json(public_case(CASES["manor"]))
         elif self.path.startswith("/api/"):
@@ -286,12 +293,13 @@ class Handler(BaseHTTPRequestHandler):
             suspect = next(s for s in case["suspects"] if s["id"] == body["suspect_id"])
             history = body.get("history", [])
             question = body["question"]
-            system = build_system_prompt(case, suspect)
+            mode = body.get("mode", "normal")
+            system = build_system_prompt(case, suspect, mode)
 
-            # 解析失败自动重试（最多 2 次），应对偶发的空回复/思考吞 token
+            # 解析失败自动重试（最多 3 次），应对偶发的空回复/思考吞 token
             parsed = None
             last_err = None
-            for attempt in range(3):
+            for attempt in range(4):
                 try:
                     raw = call_llm(system, history, question)
                     parsed = parse_llm_json(raw)
@@ -307,7 +315,13 @@ class Handler(BaseHTTPRequestHandler):
 
             # 校验揭示的线索属于该嫌疑人
             valid_clues = set(suspect["clues_available"])
-            revealed = [c for c in parsed.get("reveals_clue", []) if c in valid_clues]
+            # 容错：模型可能返回线索 ID 或标题，两者都接受
+            clue_title_to_id = {c["title"]: c["id"] for c in case["clues"]}
+            revealed = []
+            for c in parsed.get("reveals_clue", []):
+                cid = c if c in valid_clues else clue_title_to_id.get(c)
+                if cid and cid not in revealed:
+                    revealed.append(cid)
             # 关键词规则触发（不依赖 LLM 的 JSON 字段，100% 可靠）：
             # 玩家问题或嫌疑人回答命中线索关键词 => 自动揭示
             # 限流：一次最多触发 2 条，避免一次对话解锁太多线索
@@ -337,16 +351,21 @@ class Handler(BaseHTTPRequestHandler):
             self._send_json({"error": str(e)}, 500)
 
     def _handle_accuse(self, body):
-        """指控判定：嫌疑人对 + 至少持有1条关键证据 => 定罪成功"""
+        """指控判定：嫌疑人对 + 至少持有1条关键证据 => 定罪成功。mode=hard 用反转真相"""
         try:
             case = CASES[body["case_id"]]
             suspect_id = body["suspect_id"]
             evidence_ids = set(body.get("evidence_ids", []))
-            truth = case["truth"]
+            mode = body.get("mode", "normal")
+            # 困难模式用反转真相
+            hm = case.get("hard_mode") if mode == "hard" else None
+            truth = hm["truth"] if hm else case["truth"]
+            key_set = set(hm["key_clues"]) if hm else None
 
             correct = suspect_id == truth["killer"]
             key_evidence_held = any(
-                c["id"] in evidence_ids and c.get("is_key", False)
+                c["id"] in evidence_ids and
+                ((c["id"] in key_set) if key_set else c.get("is_key", False))
                 for c in case["clues"]
             )
 
@@ -373,7 +392,7 @@ def main():
     print(f"   🔑 API key: {key_hint} | base_url: {cfg['base_url']}")
     print(f"   📁 案件: {', '.join(CASES.keys())}")
     print(f"   🌐 打开: http://localhost:{PORT}")
-    print(f"   （切到云端: BACKEND=deepseek python3 server.py）")
+    print(f"   （固定使用本地模型，DeepSeek 已禁用）")
     ThreadingHTTPServer(("0.0.0.0", PORT), Handler).serve_forever()
 
 

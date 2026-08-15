@@ -105,20 +105,27 @@ async function runChatTask(body, taskId) {
 }
 
 export default async (req) => {
+  let body = null;
+  let taskId = null;
   try {
-    const body = await req.json();
-    const taskId = body.task_id || `t${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    // 触发后台任务（不等待）
-    runChatTask(body, taskId).catch(() => {});
-    return new Response(JSON.stringify({ task_id: taskId }), {
-      status: 202,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    body = await req.json();
+    taskId = body.task_id || `t${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   } catch (e) {
-    return new Response(JSON.stringify({ error: String(e.message || e) }), {
-      status: 500, headers: { 'Content-Type': 'application/json' },
-    });
+    // body 读不到也返回 202，后台任务会用默认参数尝试
+    body = body || {};
+    taskId = taskId || `t${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   }
+  // 触发后台任务（不等待）
+  runChatTask(body, taskId).catch(e => {
+    // 最后兜底：把错误写进 Blobs 方便排查
+    try {
+      getStore({ name: STORE_NAME }).set(taskId, JSON.stringify({ status: 'error', error: String(e), ts: Date.now() }));
+    } catch (_) {}
+  });
+  return new Response(JSON.stringify({ task_id: taskId }), {
+    status: 202,
+    headers: { 'Content-Type': 'application/json' },
+  });
 };
 
 export const config = { path: '/api/chat', background: true };

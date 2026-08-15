@@ -1,7 +1,7 @@
 // POST /api/chat — Background Function：接收审问请求，立即 202，
 // 后台调用本地 LM Studio（经隧道），结果存 Netlify Blobs（key = task_id）
 import { getStore } from '@netlify/blobs';
-import { loadCase, buildSystemPrompt, parseLlmJson, getEnv } from './lib/shared.js';
+import { loadCase, buildSystemPrompt, parseLlmJson, getEnv, corsJson, corsPreflight } from './lib/shared.js';
 
 const STORE_NAME = 'aid-chat-results';
 
@@ -103,6 +103,7 @@ async function runChatTask(body, taskId) {
 }
 
 export default async (req) => {
+  if (req.method === 'OPTIONS') return corsPreflight();
   let body = null;
   let taskId = null;
   try {
@@ -119,10 +120,7 @@ export default async (req) => {
       getStore({ name: STORE_NAME }).set(taskId, JSON.stringify({ status: 'error', error: String(e), ts: Date.now() }));
     } catch (_) {}
   });
-  return new Response(JSON.stringify({ task_id: taskId }), {
-    status: 202,
-    headers: { 'Content-Type': 'application/json' },
-  });
+  return corsJson({ task_id: taskId }, 202);
 };
 
 export const config = { background: true };

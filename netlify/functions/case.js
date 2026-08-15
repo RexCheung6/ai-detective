@@ -1,19 +1,16 @@
 // GET /api/case?id=xxx&mode=normal|hard — 脱敏案件数据
-import { loadCase, publicCase } from './lib/shared.js';
+import { loadCase, publicCase, corsJson, corsPreflight } from './lib/shared.js';
 
 export default async (req) => {
+  if (req.method === 'OPTIONS') return corsPreflight();
   const url = new URL(req.url);
   const id = url.searchParams.get('id') || 'manor';
   const mode = url.searchParams.get('mode') || 'normal';
   try {
     const data = publicCase(loadCase(id), mode);
-    return new Response(JSON.stringify(data), {
-      headers: { 'Content-Type': 'application/json; charset=utf-8' },
-    });
+    return corsJson(data);
   } catch (e) {
-    return new Response(JSON.stringify({ error: e.message }), {
-      status: 404, headers: { 'Content-Type': 'application/json' },
-    });
+    return corsJson({ error: e.message }, 404);
   }
 };
 

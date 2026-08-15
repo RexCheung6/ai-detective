@@ -1,7 +1,8 @@
 // POST /api/accuse — 指控裁决（服务端，mode=hard 用反转真相）
-import { loadCase } from './lib/shared.js';
+import { loadCase, corsJson, corsPreflight } from './lib/shared.js';
 
 export default async (req) => {
+  if (req.method === 'OPTIONS') return corsPreflight();
   try {
     const body = await req.json();
     const caseData = loadCase(body.case_id);
@@ -23,14 +24,12 @@ export default async (req) => {
     else if (correct) result = 'insufficient';
     else result = 'wrong';
 
-    return new Response(JSON.stringify({
+    return corsJson({
       result,
       truth: (result === 'convicted' || result === 'wrong') ? truth : null,
-    }), { headers: { 'Content-Type': 'application/json' } });
-  } catch (e) {
-    return new Response(JSON.stringify({ error: String(e.message || e) }), {
-      status: 500, headers: { 'Content-Type': 'application/json' },
     });
+  } catch (e) {
+    return corsJson({ error: String(e.message || e) }, 500);
   }
 };
 

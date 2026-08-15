@@ -108,3 +108,24 @@ export function getEnv() {
     apiKey: process.env.LM_API_KEY || '',
   };
 }
+
+// 统一 CORS 头：打包版（Electron file:// / Capacitor https://localhost）跨域请求必需
+export const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Access-Control-Max-Age': '86400',
+};
+
+// 预检请求响应（OPTIONS）
+export function corsPreflight() {
+  return new Response(null, { status: 204, headers: CORS_HEADERS });
+}
+
+// 带 CORS 的 JSON 响应
+export function corsJson(data, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { 'Content-Type': 'application/json; charset=utf-8', ...CORS_HEADERS },
+  });
+}

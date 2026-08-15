@@ -15,6 +15,9 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      // 打包版加载 file:// 页面请求 https:// Netlify API 是跨域请求，
+      // 关闭 webSecurity 让本地前端能访问远程 API（仅打包版生效，网页版不受影响）
+      webSecurity: false,
     },
   });
 

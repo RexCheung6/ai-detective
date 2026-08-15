@@ -58,11 +58,13 @@ if [ "$HTTP_CODE" = "401" ] || [ "$HTTP_CODE" = "200" ]; then
     netlify env:set LM_BASE_URL "$CURRENT_URL/v1" --site "$NETLIFY_SITE" >> "$LOG_FILE" 2>&1
 
     echo "[$(date '+%F %T')]   重新部署…" >> "$LOG_FILE"
-    cd "/Users/rc/project/new/ai-detective" || exit 1
-    if netlify deploy --build --prod --skip-functions-cache --site "$NETLIFY_SITE" >> "$LOG_FILE" 2>&1; then
+    cd /Users/rc/project/new/ai-detective || exit 1
+    if netlify deploy --build --prod --skip-functions-cache 2>&1 | tee -a "$LOG_FILE" | grep -q "Deploy complete"; then
         echo "[$(date '+%F %T')] ✅ Netlify 已同步新隧道地址" >> "$LOG_FILE"
     else
-        echo "[$(date '+%F %T')] ⚠️ Netlify 部署失败！请检查上方日志" >> "$LOG_FILE"
+        echo "[$(date '+%F %T')] ⚠️ Netlify 部署失败（可能构建额度用完）。网页版需在额度恢复后手动同步。" >> "$LOG_FILE"
+        # 保留最新 URL 记录，额度恢复后重试时能检测到差异
+        echo "$CURRENT_URL" > "$URL_FILE"
     fi
 else
     echo "[$(date '+%F %T')] ❌ 隧道探测失败 (HTTP $HTTP_CODE)，尝试重启 cloudflared" >> "$LOG_FILE"

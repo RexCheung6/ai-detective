@@ -528,3 +528,33 @@ Edge function logs: <https://app.netlify.com/projects/ai-detective-game-828/logs
 2026-08-15T07:16:47Z INF Registered tunnel connection connIndex=0 connection=27079721-22f1-4ff9-b3db-0cf38a0b6dbd event=0 ip=198.41.200.63 location=lax01 protocol=quic
 [2026-08-15 15:17:29] ✅ 隧道正常 (https://sandra-fiction-thoroughly-phrase.trycloudflare.com)
 [2026-08-15 15:19:34] ✅ 隧道正常 (https://sandra-fiction-thoroughly-phrase.trycloudflare.com)
+[2026-08-15 15:21:36] ✅ 隧道正常 (https://sandra-fiction-thoroughly-phrase.trycloudflare.com)
+2026-08-15T07:22:29Z ERR  error="Incoming request ended abruptly: context canceled" connIndex=0 event=1 ingressRule=0 originService=http://localhost:1234
+2026-08-15T07:22:29Z ERR Request failed error="Incoming request ended abruptly: context canceled" connIndex=0 dest=https://sandra-fiction-thoroughly-phrase.trycloudflare.com/v1/chat/completions event=0 ip=198.41.200.63 type=http
+2026-08-15T07:22:56Z ERR  error="Incoming request ended abruptly: context canceled" connIndex=0 event=1 ingressRule=0 originService=http://localhost:1234
+2026-08-15T07:22:56Z ERR Request failed error="Incoming request ended abruptly: context canceled" connIndex=0 dest=https://sandra-fiction-thoroughly-phrase.trycloudflare.com/v1/chat/completions event=0 ip=198.41.200.63 type=http
+[2026-08-15 15:23:38] ✅ 隧道正常 (https://sandra-fiction-thoroughly-phrase.trycloudflare.com)
+2026-08-15T07:24:35Z ERR  error="Incoming request ended abruptly: context canceled" connIndex=0 event=1 ingressRule=0 originService=http://localhost:1234
+2026-08-15T07:24:35Z ERR Request failed error="Incoming request ended abruptly: context canceled" connIndex=0 dest=https://sandra-fiction-thoroughly-phrase.trycloudflare.com/v1/chat/completions event=0 ip=198.41.200.63 type=http
+[2026-08-15 15:25:41] ✅ 隧道正常 (https://sandra-fiction-thoroughly-phrase.trycloudflare.com)
+[2026-08-15 15:27:43] ✅ 隧道正常 (https://sandra-fiction-thoroughly-phrase.trycloudflare.com)
+[2026-08-15 15:29:15] ✅ 隧道正常 (https://sandra-fiction-thoroughly-phrase.trycloudflare.com)
+[2026-08-15 15:29:46] ✅ 隧道正常 (https://sandra-fiction-thoroughly-phrase.trycloudflare.com)
+[2026-08-15 15:29:46] ✅ 隧道正常 (https://sandra-fiction-thoroughly-phrase.trycloudflare.com)
+[2026-08-15 15:30:04] ✅ 隧道正常 (https://sandra-fiction-thoroughly-phrase.trycloudflare.com)
+[2026-08-15 15:31:48] ✅ 隧道正常 (https://sandra-fiction-thoroughly-phrase.trycloudflare.com)
+[2026-08-15 15:33:50] ✅ 隧道正常 (https://sandra-fiction-thoroughly-phrase.trycloudflare.com)
+[2026-08-15 15:35:52] ✅ 隧道正常 (https://sandra-fiction-thoroughly-phrase.trycloudflare.com)
+[2026-08-15 15:37:54] ✅ 隧道正常 (https://sandra-fiction-thoroughly-phrase.trycloudflare.com)
+[2026-08-15 15:39:56] ✅ 隧道正常 (https://sandra-fiction-thoroughly-phrase.trycloudflare.com)
+[2026-08-15 15:41:58] ✅ 隧道正常 (https://sandra-fiction-thoroughly-phrase.trycloudflare.com)
+[2026-08-15 15:44:00] ✅ 隧道正常 (https://sandra-fiction-thoroughly-phrase.trycloudflare.com)
+[2026-08-15 15:46:02] ✅ 隧道正常 (https://sandra-fiction-thoroughly-phrase.trycloudflare.com)
+[2026-08-15 15:48:05] ✅ 隧道正常 (https://sandra-fiction-thoroughly-phrase.trycloudflare.com)
+[2026-08-15 15:50:06] ✅ 隧道正常 (https://sandra-fiction-thoroughly-phrase.trycloudflare.com)
+[2026-08-15 15:52:08] ✅ 隧道正常 (https://sandra-fiction-thoroughly-phrase.trycloudflare.com)
+[2026-08-15 15:54:10] ✅ 隧道正常 (https://sandra-fiction-thoroughly-phrase.trycloudflare.com)
+[2026-08-15 15:56:12] ✅ 隧道正常 (https://sandra-fiction-thoroughly-phrase.trycloudflare.com)
+[2026-08-15 15:58:14] ✅ 隧道正常 (https://sandra-fiction-thoroughly-phrase.trycloudflare.com)
+[2026-08-15 16:00:16] ✅ 隧道正常 (https://sandra-fiction-thoroughly-phrase.trycloudflare.com)
+[2026-08-15 16:02:17] ✅ 隧道正常 (https://sandra-fiction-thoroughly-phrase.trycloudflare.com)

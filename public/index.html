@@ -481,6 +481,25 @@ async function fetchJSON(url, opts) {
   if (isPacked) {
     apiUrl = 'https://ai-detective-game-828.netlify.app' + url;
   }
+  // Capacitor (Android)：用原生 HTTP 插件绕过 WebView CORS（仅打包版）
+  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorHttp) {
+    const http = window.Capacitor.Plugins.CapacitorHttp;
+    try {
+      if ((opts?.method || 'GET') === 'POST') {
+        const res = await http.post({ url: apiUrl, headers: opts.headers || {}, data: JSON.parse(opts.body || '{}') });
+        const text = typeof res.data === 'string' ? res.data : JSON.stringify(res.data || {});
+        if (!text.trim()) return {};
+        return JSON.parse(text);
+      } else {
+        const res = await http.get({ url: apiUrl, headers: opts?.headers || {} });
+        const text = typeof res.data === 'string' ? res.data : JSON.stringify(res.data || {});
+        if (!text.trim()) return {};
+        return JSON.parse(text);
+      }
+    } catch (e) {
+      return { error: String(e.message || e) };
+    }
+  }
   const r = await fetch(apiUrl, opts);
   // background function 返回 202 + 空 body → 容错返回 {}
   const text = await r.text();

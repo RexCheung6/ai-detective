@@ -1,10 +1,12 @@
 // GET /api/cases — 案件列表（仅元信息）
 import { readdirSync, readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { corsJson, corsPreflight } from './lib/shared.js';
 
 const CASES_DIR = join(new URL('.', import.meta.url).pathname, 'cases');
 
-export default async () => {
+export default async (req) => {
+  if (req.method === 'OPTIONS') return corsPreflight();
   const list = [];
   if (existsSync(CASES_DIR)) {
     for (const f of readdirSync(CASES_DIR)) {
@@ -15,9 +17,7 @@ export default async () => {
       } catch (e) { /* skip broken */ }
     }
   }
-  return new Response(JSON.stringify(list), {
-    headers: { 'Content-Type': 'application/json; charset=utf-8' },
-  });
+  return corsJson(list);
 };
 
 export const config = { path: '/api/cases' };

@@ -1,10 +1,15 @@
 name: Build Installers
 
 on:
+  # 暂停自动构建：只在打 v* tag 或手动触发时构建安装包
   push:
-    branches: [main]
     tags: ['v*']
   workflow_dispatch:
+    inputs:
+      note:
+        description: '构建说明'
+        required: false
+        default: '手动构建安装包'
 
 jobs:
   build-windows:

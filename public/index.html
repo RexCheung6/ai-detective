@@ -845,10 +845,19 @@ async function sendMsg() {
     addMsg('suspect', escapeHtml(result.reply), currentSuspect.emoji, result.mood);
     if (result.new_clues && result.new_clues.length) {
       result.new_clues.forEach(c => {
-        ownedClues.push(c.id); clueDetails.push(c);
+        ownedClues.push(c.id);
+        // 补全线索详情：从 CASE.clues 取 desc/source（后端 new_clues 只含 id/title/is_key）
+        const full = (CASE.clues || []).find(x => x.id === c.id) || {};
+        clueDetails.push({
+          id: c.id,
+          title: c.title || full.title || '线索',
+          desc: full.desc || c.desc || '（线索详情待解锁）',
+          source: full.source || c.source || '',
+          is_key: !!c.is_key || !!full.is_key
+        });
       });
       updateClueBadge();
-      showCluePop(result.new_clues[0]);
+      showCluePop(clueDetails[clueDetails.length - 1]);
     }
     saveProgress();
   } catch(e) {
@@ -883,7 +892,7 @@ async function pollChatResult(taskId, timeoutMs = 150000) {
 function showCluePop(clue) {
   const pop = document.createElement('div');
   pop.className = 'clue-pop';
-  pop.innerHTML = `<div class="lbl">📎 新线索解锁</div><div class="t">${clue.title}</div><div class="d">${clue.desc}</div><span class="x" onclick="this.parentElement.remove()">✕</span>`;
+  pop.innerHTML = `<div class="lbl">📎 新线索解锁</div><div class="t">${clue.title || '线索'}</div><div class="d">${clue.desc || ''}</div><span class="x" onclick="this.parentElement.remove()">✕</span>`;
   document.getElementById('app').appendChild(pop);
   setTimeout(() => pop.remove(), 6000);
 }
@@ -899,9 +908,9 @@ function renderNotebook() {
   }
   el.innerHTML = clueDetails.map(c => `
     <div class="clue-item ${c.is_key ? 'key' : ''}">
-      <div class="head"><span class="t">${c.title}</span>${c.is_key ? '<span class="keytag">关键</span>' : ''}</div>
-      <div class="d">${c.desc}</div>
-      <div class="src">来源：${c.source}</div>
+      <div class="head"><span class="t">${c.title || '线索'}</span>${c.is_key ? '<span class="keytag">关键</span>' : ''}</div>
+      <div class="d">${c.desc || '（线索详情待解锁）'}</div>
+      <div class="src">来源：${c.source || '未知'}</div>
     </div>`).join('');
 }
 

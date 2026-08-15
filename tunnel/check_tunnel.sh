@@ -13,12 +13,8 @@ export PATH="$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH"
 CLOUDFLARED="$HOME/bin/cloudflared"
 LOG_FILE="/Users/rc/project/new/ai-detective/tunnel/cloudflared.log"
 URL_FILE="/Users/rc/project/new/ai-detective/tunnel/current_url"
-NETLIFY_SITE="271cc547-ad13-4f35-9001-9c12028a0d41"  # ai-detective-game-828 的 site ID
 LM_API_KEY="[REDACTED]"
-mkdir -p "/Users/rc/project/new/ai-detective/tunnel"
-
-# 注意：不设 NETLIFY_AUTH_TOKEN —— launchd 用户 agent 可访问 keychain，
-# 而 token 模式会导致 netlify-cli 不读取 netlify.toml 的 functions 配置（函数丢失）
+mkdir -p /Users/rc/project/new/ai-detective/tunnel
 
 # ---------- 1. 确保 cloudflared 进程在跑 ----------
 if ! pgrep -f "cloudflared tunnel --url http://localhost:1234" > /dev/null; then
@@ -50,20 +46,20 @@ if [ "$HTTP_CODE" = "401" ] || [ "$HTTP_CODE" = "200" ]; then
         exit 0
     fi
 
-    # ---------- 4. URL 变了（新隧道）→ 同步 Netlify ----------
+    # ---------- 4. URL 变了（新隧道）→ 同步 Cloudflare Pages ----------
     echo "[$(date '+%F %T')] 🔄 隧道 URL 变化: $(cat "$URL_FILE" 2>/dev/null) → $CURRENT_URL" >> "$LOG_FILE"
     echo "$CURRENT_URL" > "$URL_FILE"
 
-    echo "[$(date '+%F %T')]   更新 Netlify LM_BASE_URL…" >> "$LOG_FILE"
-    netlify env:set LM_BASE_URL "$CURRENT_URL/v1" --site "$NETLIFY_SITE" >> "$LOG_FILE" 2>&1
+    echo "[$(date '+%F %T')]   更新 Cloudflare 变量 LM_BASE_URL…" >> "$LOG_FILE"
+    export PATH="$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH"
+    echo "$CURRENT_URL/v1" | wrangler pages secret put LM_BASE_URL --project-name ai-detective-game >> "$LOG_FILE" 2>&1
 
-    echo "[$(date '+%F %T')]   重新部署…" >> "$LOG_FILE"
+    echo "[$(date '+%F %T')]   重新部署 Cloudflare Pages…" >> "$LOG_FILE"
     cd /Users/rc/project/new/ai-detective || exit 1
-    if netlify deploy --build --prod --skip-functions-cache 2>&1 | tee -a "$LOG_FILE" | grep -q "Deploy complete"; then
-        echo "[$(date '+%F %T')] ✅ Netlify 已同步新隧道地址" >> "$LOG_FILE"
+    if wrangler pages deploy public --project-name ai-detective-game --commit-dirty=true 2>&1 | tee -a "$LOG_FILE" | grep -q "Deployment complete"; then
+        echo "[$(date '+%F %T')] ✅ Cloudflare Pages 已同步新隧道地址" >> "$LOG_FILE"
     else
-        echo "[$(date '+%F %T')] ⚠️ Netlify 部署失败（可能构建额度用完）。网页版需在额度恢复后手动同步。" >> "$LOG_FILE"
-        # 保留最新 URL 记录，额度恢复后重试时能检测到差异
+        echo "[$(date '+%F %T')] ⚠️ Cloudflare Pages 部署失败！请检查上方日志" >> "$LOG_FILE"
         echo "$CURRENT_URL" > "$URL_FILE"
     fi
 else

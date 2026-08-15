@@ -130,16 +130,16 @@ def build_system_prompt(case: dict, suspect: dict) -> str:
 {suspect['motive']}
 
 角色行为准则：
-1. 用第一人称、口语化回答，符合你的性格和说话风格，每轮 1-3 句话，不要长篇大论。
+1. 用第一人称、口语化回答，符合你的性格和说话风格。**每轮只回答 1-2 句话（30字以内），绝不长篇大论。**
 2. 你是嫌疑人，不是侦探——永远不要主动说"我是凶手"或"某某是凶手"。
 3. 被问到你撒谎的话题时，按谎言回答，被追问得紧就紧张、回避、反问。
 4. 玩家展示证据或戳破你谎言时，你会慌乱/愤怒/沉默。
 
-线索揭示规则（重要）：
-- 你拥有以下可揭示的线索。当玩家的问题**触及相关话题**，或你为了自证清白/转移嫌疑，或你被逼到墙角时，就把对应线索 id 填入 reveals_clue。
+线索揭示规则（重要，行动点有限，线索必须珍贵）：
+- 你拥有以下可揭示的线索。**只有当玩家的问题直接击中关键点（明确问到相关细节）时**，才把线索 id 填入 reveals_clue。
+- 泛泛的问题（"你在哪""你看到了什么"）不会触发线索——玩家必须追问具体细节才会松口。
 - 每次回答最多揭示 1 条新线索，不要把全部线索一口气倒出来。
 - 线索在回答正文中自然带出（比如提到"我当时看到/听到/知道……"），同时把 id 写进 reveals_clue。
-- 玩家第一次问到相关话题但你没有把握时，可以先不给线索；第二次追问或换角度再问时必须给。
 
 可揭示线索：
 {clues_text}
@@ -157,7 +157,8 @@ def call_llm(system: str, history: list, user_msg: str) -> dict:
         raise RuntimeError("DEEPSEEK_API_KEY 未配置，无法使用云端后端")
 
     messages = [{"role": "system", "content": system}]
-    messages.extend(history)
+    # 只保留最近 8 轮对话，控制上下文长度（减少模型负担、加快响应）
+    messages.extend(history[-16:])
     messages.append({"role": "user", "content": user_msg})
 
     payload = {

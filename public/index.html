@@ -214,12 +214,13 @@
     <div class="topbar">
       <button class="icon-btn" onclick="backToCaseDetail()">←</button>
       <span class="title">嫌疑人 <span id="suspect-count"></span></span>
+      <span class="icon-btn" id="ap-badge" style="cursor:default" title="行动点">🎯 <span id="ap-count">10</span></span>
       <button class="icon-btn" onclick="showNotebook()">📒 证据 <span id="clue-count-badge" style="color:var(--accent2)">0</span></button>
       <button class="icon-btn" onclick="logout()" title="退出登录">🚪</button>
     </div>
     <div class="scroll" id="suspect-list"></div>
     <div style="padding:0 16px 14px">
-      <button class="btn btn-danger" onclick="showAccuse()">⚖️ 提出指控</button>
+      <button class="btn btn-danger" onclick="showAccuse()">⚖️ 提出指控（2点）</button>
     </div>
   </div>
 
@@ -228,6 +229,7 @@
     <div class="topbar">
       <button class="icon-btn" onclick="backToSuspects()">←</button>
       <span class="title" id="int-name">审问</span>
+      <span class="icon-btn" id="ap-badge-int" style="cursor:default" title="行动点">🎯 <span id="ap-count-int">10</span></span>
       <button class="icon-btn" onclick="showNotebook()">📒</button>
     </div>
     <div class="chat" id="chat-box"></div>
@@ -361,6 +363,7 @@ function saveProgress() {
     ownedClues,
     clueDetails,
     accuseSuspect,
+    actionPoints,
     updatedAt: Date.now()
   };
   localStorage.setItem(`aid_progress_${currentUser}`, JSON.stringify(data));
@@ -378,12 +381,38 @@ function clearProgress() {
   if (currentUser) localStorage.removeItem(`aid_progress_${currentUser}`);
 }
 
+// ==================== 行动点 ====================
+function updateAPDisplay() {
+  document.getElementById('ap-count').textContent = actionPoints;
+  document.getElementById('ap-count-int').textContent = actionPoints;
+  // 用尽时红色提示
+  const badge = document.getElementById('ap-badge');
+  const badgeInt = document.getElementById('ap-badge-int');
+  const color = actionPoints <= 2 ? 'var(--danger)' : 'var(--accent2)';
+  badge.style.color = color;
+  badgeInt.style.color = color;
+}
+
+function spendAP(n) {
+  actionPoints = Math.max(0, actionPoints - n);
+  updateAPDisplay();
+  saveProgress();
+  return actionPoints;
+}
+
+// 行动点用尽：禁止继续提问，强制指控
+function apExhausted() {
+  return actionPoints <= 0;
+}
+
 let CASE = null;
 let currentSuspect = null;
 let history = [];          // 当前审问的对话历史（发送给后端）
 let ownedClues = [];       // 已收集线索 id
 let clueDetails = [];      // 已收集线索详情
 let accuseSuspect = null;  // 指控对象
+let actionPoints = 10;     // 行动点：提问-1，指控-2，用尽必须指控
+const AP_START = 10;
 const chatBox = document.getElementById('chat-box');
 
 async function fetchJSON(url, opts) {
@@ -457,7 +486,9 @@ async function restoreProgress(prog) {
   clueDetails = prog.clueDetails || [];
   history = prog.history || [];
   accuseSuspect = prog.accuseSuspect || null;
+  actionPoints = (prog.actionPoints !== undefined) ? prog.actionPoints : AP_START;
   updateClueBadge();
+  updateAPDisplay();
   buildSuspectList();
   buildAccuseList();
 
@@ -525,7 +556,9 @@ async function selectCase(id) {
   currentSuspect = null;
   history = [];
   accuseSuspect = null;
+  actionPoints = AP_START;  // 新案件重置行动点
   updateClueBadge();
+  updateAPDisplay();
   buildSuspectList();
   buildAccuseList();
   saveProgress();
@@ -580,7 +613,14 @@ function backToCaseDetail() {
 function showNotebook() { go('screen-notebook'); renderNotebook(); }
 function backFromNotebook() { currentSuspect ? go('screen-interrogation') : go('screen-suspects'); }
 function backToSuspects() { history = []; currentSuspect = null; saveProgress(); go('screen-suspects'); }
-function showAccuse() { go('screen-accuse'); renderEvidence(); }
+function showAccuse() {
+  // 指控需要至少 2 行动点
+  if (actionPoints < 2) {
+    alert('行动点不足（需要 2 点才能提出指控）！');
+    return;
+  }
+  go('screen-accuse'); renderEvidence();
+}
 
 // ---------- 审问 ----------
 function startInterrogation(id) {
@@ -627,7 +667,14 @@ async function sendMsg() {
   const input = document.getElementById('chat-input');
   const q = input.value.trim();
   if (!q || !currentSuspect) return;
+  // 行动点检查：用尽则不允许继续提问
+  if (apExhausted()) {
+    addMsg('sys', '⚠️ 行动点已用尽！必须提出指控，或返回重新规划。');
+    input.value = '';
+    return;
+  }
   input.value = '';
+  spendAP(1);  // 提问消耗 1 行动点
   addMsg('player', escapeHtml(q));
   showTyping();
   try {
@@ -703,8 +750,10 @@ async function submitAccuse() {
   if (!accuseSuspect) { alert('请先选择指控谁！'); return; }
   const evids = [...document.querySelectorAll('#accuse-evid input:checked')].map(i => i.value);
   if (!evids.length) { alert('请选择至少一条证据！'); return; }
+  if (actionPoints < 2) { alert('行动点不足！'); return; }
   const btn = document.getElementById('accuse-btn');
   btn.disabled = true; btn.textContent = '🔨 裁定中……';
+  spendAP(2);  // 指控消耗 2 行动点
   const res = await fetchJSON('/api/accuse', {
     method: 'POST', headers: {'Content-Type':'application/json'},
     body: JSON.stringify({case_id: CASE.id, suspect_id: accuseSuspect, evidence_ids: evids})
@@ -716,15 +765,20 @@ async function submitAccuse() {
 function showVerdict(res) {
   const box = document.getElementById('verdict-box');
   const s = CASE.suspects.find(x => x.id === accuseSuspect);
+
+  // 证据不足：不是结局——提示后返回继续调查（已扣2行动点，这是惩罚）
+  if (res.result === 'insufficient') {
+    alert(`证据不足！法官驳回了你对 ${s.name} 的指控。\n（消耗 2 行动点）关键证据（⭐）才能钉死凶手，回去再查！`);
+    accuseSuspect = null;
+    go('screen-suspects');
+    return;
+  }
+
   let html = '';
   if (res.result === 'convicted') {
     html = `<div class="verdict ok"><div class="big">⚖️</div><h2>定罪成功！</h2>
       <div class="sub">你指控了 ${s.name} —— 他就是凶手。</div>
       <div class="truth-box"><div class="lbl">📜 案件真相</div>${res.truth.summary}</div>`;
-  } else if (res.result === 'insufficient') {
-    html = `<div class="verdict"><div class="big">📋</div><h2>证据不足</h2>
-      <div class="sub">${s.name} 确实可疑，但你的证据链不够硬。法官驳回了指控。</div>
-      <div class="truth-box"><div class="lbl">💡 提示</div>关键证据（标 ⭐）是定罪的关键。再去审问，收集能钉死凶手的证据。</div>`;
   } else {
     html = `<div class="verdict bad"><div class="big">💔</div><h2>指控失败</h2>
       <div class="sub">${s.name} 是无辜的。真凶……仍然逍遥法外。</div>
@@ -747,13 +801,15 @@ function goNextCase() {
   history = [];
   currentSuspect = null;
   accuseSuspect = null;
+  actionPoints = AP_START;
   CASE = null;
   updateClueBadge();
+  updateAPDisplay();
   resetIntro();
   go('screen-intro');
 }
 
-// 重新破案：保留在当前案件，重置该案件的调查进度（线索/审问历史清空）
+// 重新破案：保留在当前案件，重置该案件的调查进度（线索/审问历史/行动点清空）
 function restartCase() {
   if (!CASE) return;
   // 重置当前案件进度
@@ -762,7 +818,9 @@ function restartCase() {
   history = [];
   currentSuspect = null;
   accuseSuspect = null;
+  actionPoints = AP_START;
   updateClueBadge();
+  updateAPDisplay();
   buildSuspectList();
   buildAccuseList();
   saveProgress();

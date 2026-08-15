@@ -759,7 +759,8 @@ function quickAsk(q) { document.getElementById('chat-input').value = q; sendMsg(
 function addMsg(role, text, ava, mood) {
   const box = document.getElementById('chat-box');
   if (role === 'suspect') {
-    box.innerHTML += `<div class="msg suspect"><div class="ava">${ava}</div><div><div class="bubble">${text}</div><div class="mood-tag">${currentSuspect.name} · ${moodText(mood)}</div></div></div>`;
+    const moodTag = moodText(mood);
+    box.innerHTML += `<div class="msg suspect"><div class="ava">${ava}</div><div><div class="bubble">${text}</div><div class="mood-tag">${currentSuspect.name}${moodTag ? ' · ' + moodTag : ''}</div></div></div>`;
   } else if (role === 'player') {
     box.innerHTML += `<div class="msg player"><div class="ava">🧑‍⚖️</div><div class="bubble">${text}</div></div>`;
   } else {
@@ -767,7 +768,10 @@ function addMsg(role, text, ava, mood) {
   }
   box.scrollTop = box.scrollHeight;
 }
-function moodText(m) { return {calm:'镇定', nervous:'紧张', angry:'恼怒', evasive:'回避', sad:'悲伤'}[m] || m; }
+function moodText(m) {
+  if (!m) return '';
+  return {calm:'镇定', nervous:'紧张', angry:'恼怒', evasive:'回避', sad:'悲伤'}[m] || m;
+}
 
 function showTyping() {
   const box = document.getElementById('chat-box');

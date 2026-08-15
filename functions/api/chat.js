@@ -41,8 +41,13 @@ async function runChatTask(body, taskId, env, ctx) {
     const messages = [{ role: 'system', content: system }];
     const hist = Array.isArray(body.history) ? body.history.slice(-8) : [];
     for (const h of hist) {
-      messages.push({ role: 'user', content: h.q || '' });
-      if (h.a) messages.push({ role: 'assistant', content: h.a });
+      // 兼容两种格式：前端 {role,content} 与旧 {q,a}
+      if (h && h.content !== undefined) {
+        if (h.content) messages.push({ role: h.role || 'user', content: h.content });
+      } else {
+        if (h && h.q) messages.push({ role: 'user', content: h.q });
+        if (h && h.a) messages.push({ role: 'assistant', content: h.a });
+      }
     }
     messages.push({ role: 'user', content: body.question || '' });
 

@@ -122,8 +122,9 @@ export default async (req) => {
       await getStore({ name: STORE_NAME }).set(`${taskId}_handler`, JSON.stringify({ error: String(e), ts: Date.now() }));
     } catch (_) {}
   }
-  // 触发后台任务（不等待）
-  runChatTask(body, taskId).catch(e => {
+  // background 模式下 Netlify 立即回 202，函数体会继续执行到完成——
+  // 所以这里要 await 整个任务，而不是 fire-and-forget（后者在返回后被回收）
+  await runChatTask(body, taskId).catch(e => {
     try {
       getStore({ name: STORE_NAME }).set(taskId, JSON.stringify({ status: 'error', error: String(e), ts: Date.now() }));
     } catch (_) {}

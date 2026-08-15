@@ -2,11 +2,10 @@
 // 案件 JSON 部署在同目录 cases/ 下
 
 import { readFileSync, existsSync } from 'node:fs';
-import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const CASES_DIR = join(__dirname, 'cases');
+// Netlify v2 Functions 是 ESM：用 import.meta.url 定位（避免 __dirname 冲突）
+const CASES_DIR = join(new URL('.', import.meta.url).pathname, 'cases');
 
 export function loadCase(caseId) {
   const path = join(CASES_DIR, `${caseId}.json`);

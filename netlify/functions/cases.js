@@ -1,10 +1,8 @@
 // GET /api/cases — 案件列表（仅元信息）
 import { readdirSync, readFileSync, existsSync } from 'node:fs';
-import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const CASES_DIR = join(__dirname, 'cases');
+const CASES_DIR = join(new URL('.', import.meta.url).pathname, 'cases');
 
 export default async () => {
   const list = [];

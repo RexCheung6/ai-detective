@@ -472,9 +472,16 @@ let difficulty = 'normal'; // 难度：normal 普通 / hard 困难（真相反�
 const chatBox = document.getElementById('chat-box');
 
 async function fetchJSON(url, opts) {
-  // Netlify 环境：v2 functions 用 config.path 暴露在 /api/*（默认 /.netlify/functions/* 会 404）
-  // 所以保持 /api/* 原路径即可，无需映射
-  const r = await fetch(url, opts);
+  // API 地址解析：
+  // - 网页版（Netlify 或本地 server.py 的 localhost:8899）：用相对路径 /api/*
+  // - 打包版（Electron 加载 file:// 或 Capacitor 的 https://localhost 空端口）：指向 Netlify 绝对地址
+  let apiUrl = url;
+  const isPacked = location.protocol === 'file:'
+    || (location.hostname === 'localhost' && location.port === '');
+  if (isPacked) {
+    apiUrl = 'https://ai-detective-game-828.netlify.app' + url;
+  }
+  const r = await fetch(apiUrl, opts);
   // background function 返回 202 + 空 body → 容错返回 {}
   const text = await r.text();
   if (!text.trim()) return {};

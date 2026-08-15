@@ -1,0 +1,44 @@
+{
+  "name": "ai-detective",
+  "version": "1.0.0",
+  "description": "AI 侦探 —— 嫌疑人由你的本地大模型实时扮演的交互推理游戏",
+  "author": "AI Detective",
+  "main": "electron/main.js",
+  "scripts": {
+    "electron:dev": "electron .",
+    "build:mac": "electron-builder --mac",
+    "build:win": "electron-builder --win",
+    "build:linux": "electron-builder --linux",
+    "cap:sync": "cap sync android",
+    "cap:add": "cap add android"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/cli": "^7.0.0",
+    "@capacitor/core": "^7.0.0",
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.aidetective.game",
+    "productName": "AI侦探",
+    "files": [
+      "electron/**/*",
+      "public/**/*"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "mac": {
+      "target": ["dmg"],
+      "category": "public.app-category.games"
+    },
+    "win": {
+      "target": ["nsis"]
+    },
+    "linux": {
+      "target": ["AppImage"],
+      "category": "Game"
+    }
+  }
+}

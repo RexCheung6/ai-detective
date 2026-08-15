@@ -1,2 +1,33 @@
-# Local Netlify folder
-.netlify
+# 密钥与环境（绝不进仓库）
+.env
+.env.*
+!.env.example
+
+# 依赖
+node_modules/
+netlify/functions/node_modules/
+
+# Python 缓存
+__pycache__/
+*.pyc
+
+# Netlify 本地
+.netlify/
+
+# 隧道守护
+tunnel/*.log
+tunnel/current_url
+
+# 打包产物
+dist/
+release/
+build/
+android/.gradle/
+android/app/build/
+android/build/
+*.apk
+*.exe
+*.dmg
+
+# 系统
+.DS_Store

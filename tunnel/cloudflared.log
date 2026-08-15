@@ -467,3 +467,64 @@ Build logs: <https://app.netlify.com/projects/ai-detective-game-828/deploys/6a80
 Function logs: <https://app.netlify.com/projects/ai-detective-game-828/logs/functions>
 Edge function logs: <https://app.netlify.com/projects/ai-detective-game-828/logs/edge-functions>
 [2026-08-15 14:41:47] ✅ Netlify 已同步新隧道地址
+[2026-08-15 14:42:43] ✅ 隧道正常 (https://sandra-fiction-thoroughly-phrase.trycloudflare.com)
+[2026-08-15 14:44:46] ✅ 隧道正常 (https://sandra-fiction-thoroughly-phrase.trycloudflare.com)
+[2026-08-15 14:46:50] ✅ 隧道正常 (https://sandra-fiction-thoroughly-phrase.trycloudflare.com)
+[2026-08-15 14:48:52] ✅ 隧道正常 (https://sandra-fiction-thoroughly-phrase.trycloudflare.com)
+[2026-08-15 14:50:58] ✅ 隧道正常 (https://sandra-fiction-thoroughly-phrase.trycloudflare.com)
+[2026-08-15 14:53:00] ✅ 隧道正常 (https://sandra-fiction-thoroughly-phrase.trycloudflare.com)
+[2026-08-15 14:55:02] ✅ 隧道正常 (https://sandra-fiction-thoroughly-phrase.trycloudflare.com)
+[2026-08-15 14:57:04] ✅ 隧道正常 (https://sandra-fiction-thoroughly-phrase.trycloudflare.com)
+[2026-08-15 14:59:05] ✅ 隧道正常 (https://sandra-fiction-thoroughly-phrase.trycloudflare.com)
+[2026-08-15 15:01:07] ✅ 隧道正常 (https://sandra-fiction-thoroughly-phrase.trycloudflare.com)
+[2026-08-15 15:03:10] ✅ 隧道正常 (https://sandra-fiction-thoroughly-phrase.trycloudflare.com)
+[2026-08-15 15:05:12] ✅ 隧道正常 (https://sandra-fiction-thoroughly-phrase.trycloudflare.com)
+[2026-08-15 15:07:14] ✅ 隧道正常 (https://sandra-fiction-thoroughly-phrase.trycloudflare.com)
+[2026-08-15 15:09:16] ✅ 隧道正常 (https://sandra-fiction-thoroughly-phrase.trycloudflare.com)
+2026-08-15T07:09:28Z ERR failed to accept incoming stream requests error="failed to accept QUIC stream: timeout: no recent network activity" connIndex=0 event=0 ip=198.41.200.63
+2026-08-15T07:09:28Z ERR failed to run the datagram handler error="timeout: no recent network activity" connIndex=0 event=0 ip=198.41.200.63
+2026-08-15T07:09:28Z ERR failed to serve tunnel connection error="accept stream listener encountered a failure while serving" connIndex=0 event=0 ip=198.41.200.63
+2026-08-15T07:09:28Z ERR Serve tunnel error error="accept stream listener encountered a failure while serving" connIndex=0 event=0 ip=198.41.200.63
+2026-08-15T07:09:28Z INF Retrying connection in up to 1s connIndex=0 event=0 ip=198.41.200.63
+2026-08-15T07:09:30Z INF Tunnel connection curve preferences: [X25519MLKEM768 CurveID(65074) CurveP256] connIndex=0 event=0 ip=198.41.200.63
+2026-08-15T07:09:31Z INF Registered tunnel connection connIndex=0 connection=95415af1-4d33-452c-b16d-19591497cfa1 event=0 ip=198.41.200.63 location=tpe01 protocol=quic
+2026-08-15T07:09:43Z ERR failed to accept incoming stream requests error="failed to accept QUIC stream: timeout: no recent network activity" connIndex=0 event=0 ip=198.41.200.63
+2026-08-15T07:09:43Z ERR failed to run the datagram handler error="timeout: no recent network activity" connIndex=0 event=0 ip=198.41.200.63
+2026-08-15T07:09:43Z WRN failed to serve tunnel connection error="accept stream listener encountered a failure while serving" connIndex=0 event=0 ip=198.41.200.63
+2026-08-15T07:09:43Z ERR Serve tunnel error error="accept stream listener encountered a failure while serving" connIndex=0 event=0 ip=198.41.200.63
+2026-08-15T07:09:43Z INF Retrying connection in up to 1s connIndex=0 event=0 ip=198.41.200.63
+2026-08-15T07:09:43Z INF Tunnel connection curve preferences: [X25519MLKEM768 CurveID(65074) CurveP256] connIndex=0 event=0 ip=198.41.200.63
+2026-08-15T07:09:44Z INF Registered tunnel connection connIndex=0 connection=87417ee1-3904-4f69-b78e-bd67ed53c30f event=0 ip=198.41.200.63 location=lax01 protocol=quic
+2026-08-15T07:09:47Z ERR failed to accept incoming stream requests error="failed to accept QUIC stream: Application error 0x0 (remote)" connIndex=0 event=0 ip=198.41.200.63
+2026-08-15T07:09:47Z ERR failed to run the datagram handler error="Application error 0x0 (remote)" connIndex=0 event=0 ip=198.41.200.63
+2026-08-15T07:09:47Z ERR failed to serve tunnel connection error="accept stream listener encountered a failure while serving" connIndex=0 event=0 ip=198.41.200.63
+2026-08-15T07:09:47Z ERR Serve tunnel error error="accept stream listener encountered a failure while serving" connIndex=0 event=0 ip=198.41.200.63
+2026-08-15T07:09:47Z INF Retrying connection in up to 1s connIndex=0 event=0 ip=198.41.200.63
+2026-08-15T07:09:48Z INF Tunnel connection curve preferences: [X25519MLKEM768 CurveID(65074) CurveP256] connIndex=0 event=0 ip=198.41.200.63
+2026-08-15T07:09:49Z INF Registered tunnel connection connIndex=0 connection=1ad76228-e5c7-4aeb-8820-5c6604e5ddad event=0 ip=198.41.200.63 location=lax01 protocol=quic
+[2026-08-15 15:11:18] ✅ 隧道正常 (https://sandra-fiction-thoroughly-phrase.trycloudflare.com)
+2026-08-15T07:11:38Z ERR failed to run the datagram handler error="timeout: no recent network activity" connIndex=0 event=0 ip=198.41.200.63
+2026-08-15T07:11:38Z ERR failed to accept incoming stream requests error="failed to accept QUIC stream: timeout: no recent network activity" connIndex=0 event=0 ip=198.41.200.63
+2026-08-15T07:11:38Z WRN failed to serve tunnel connection error="datagram manager encountered a failure while serving" connIndex=0 event=0 ip=198.41.200.63
+2026-08-15T07:11:38Z ERR Serve tunnel error error="datagram manager encountered a failure while serving" connIndex=0 event=0 ip=198.41.200.63
+2026-08-15T07:11:38Z INF Retrying connection in up to 1s connIndex=0 event=0 ip=198.41.200.63
+2026-08-15T07:11:39Z INF Tunnel connection curve preferences: [X25519MLKEM768 CurveID(65074) CurveP256] connIndex=0 event=0 ip=198.41.200.63
+2026-08-15T07:11:40Z INF Registered tunnel connection connIndex=0 connection=3a6d397a-f7f1-4eb7-9e1e-22b25ff8ac0b event=0 ip=198.41.200.63 location=lax01 protocol=quic
+[2026-08-15 15:13:20] ✅ 隧道正常 (https://sandra-fiction-thoroughly-phrase.trycloudflare.com)
+2026-08-15T07:13:48Z ERR failed to accept incoming stream requests error="failed to accept QUIC stream: timeout: no recent network activity" connIndex=0 event=0 ip=198.41.200.63
+2026-08-15T07:13:48Z ERR failed to run the datagram handler error="timeout: no recent network activity" connIndex=0 event=0 ip=198.41.200.63
+2026-08-15T07:13:48Z WRN failed to serve tunnel connection error="accept stream listener encountered a failure while serving" connIndex=0 event=0 ip=198.41.200.63
+2026-08-15T07:13:48Z ERR Serve tunnel error error="accept stream listener encountered a failure while serving" connIndex=0 event=0 ip=198.41.200.63
+2026-08-15T07:13:48Z INF Retrying connection in up to 1s connIndex=0 event=0 ip=198.41.200.63
+2026-08-15T07:13:49Z INF Tunnel connection curve preferences: [X25519MLKEM768 CurveID(65074) CurveP256] connIndex=0 event=0 ip=198.41.200.63
+2026-08-15T07:13:50Z INF Registered tunnel connection connIndex=0 connection=abb63bb9-84f7-4980-8ebd-d248a9bafec6 event=0 ip=198.41.200.63 location=lax01 protocol=quic
+[2026-08-15 15:15:27] ✅ 隧道正常 (https://sandra-fiction-thoroughly-phrase.trycloudflare.com)
+2026-08-15T07:16:45Z ERR failed to run the datagram handler error="timeout: no recent network activity" connIndex=0 event=0 ip=198.41.200.63
+2026-08-15T07:16:45Z ERR failed to accept incoming stream requests error="failed to accept QUIC stream: timeout: no recent network activity" connIndex=0 event=0 ip=198.41.200.63
+2026-08-15T07:16:45Z WRN failed to serve tunnel connection error="datagram manager encountered a failure while serving" connIndex=0 event=0 ip=198.41.200.63
+2026-08-15T07:16:45Z ERR Serve tunnel error error="datagram manager encountered a failure while serving" connIndex=0 event=0 ip=198.41.200.63
+2026-08-15T07:16:45Z INF Retrying connection in up to 1s connIndex=0 event=0 ip=198.41.200.63
+2026-08-15T07:16:47Z INF Tunnel connection curve preferences: [X25519MLKEM768 CurveID(65074) CurveP256] connIndex=0 event=0 ip=198.41.200.63
+2026-08-15T07:16:47Z INF Registered tunnel connection connIndex=0 connection=27079721-22f1-4ff9-b3db-0cf38a0b6dbd event=0 ip=198.41.200.63 location=lax01 protocol=quic
+[2026-08-15 15:17:29] ✅ 隧道正常 (https://sandra-fiction-thoroughly-phrase.trycloudflare.com)
+[2026-08-15 15:19:34] ✅ 隧道正常 (https://sandra-fiction-thoroughly-phrase.trycloudflare.com)

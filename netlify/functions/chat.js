@@ -38,8 +38,6 @@ async function callLlm(system, history, userMsg) {
 async function runChatTask(body, taskId) {
   const store = getStore({ name: STORE_NAME });
   try {
-    // 自检：立即写入一个 started 标记，验证 Blobs 可写
-    await store.set(`${taskId}_started`, JSON.stringify({ ts: Date.now(), hasBody: !!body }));
     const caseData = loadCase(body.case_id);
     const suspect = caseData.suspects.find(s => s.id === body.suspect_id);
     if (!suspect) throw new Error(`suspect ${body.suspect_id} not found`);
@@ -114,16 +112,8 @@ export default async (req) => {
     body = body || {};
     taskId = taskId || `t${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   }
-  // 决定性测试：在 handler 内 await 写入 started 标记（若成功说明 Blobs 在 background 下可用）
-  try {
-    await getStore({ name: STORE_NAME }).set(`${taskId}_handler`, JSON.stringify({ ts: Date.now(), hasBody: !!body, bodyKeys: Object.keys(body) }));
-  } catch (e) {
-    try {
-      await getStore({ name: STORE_NAME }).set(`${taskId}_handler`, JSON.stringify({ error: String(e), ts: Date.now() }));
-    } catch (_) {}
-  }
   // background 模式下 Netlify 立即回 202，函数体会继续执行到完成——
-  // 所以这里要 await 整个任务，而不是 fire-and-forget（后者在返回后被回收）
+  // 必须 await 整个任务（fire-and-forget 会在返回后被回收导致任务不执行）
   await runChatTask(body, taskId).catch(e => {
     try {
       getStore({ name: STORE_NAME }).set(taskId, JSON.stringify({ status: 'error', error: String(e), ts: Date.now() }));

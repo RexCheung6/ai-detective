@@ -498,11 +498,30 @@ async function fetchJSON(url, opts) {
   // API 地址解析：
   // - 网页版：相对路径 /api/*（Cloudflare Pages 或本地 server.py 的 localhost:8899 同域）
   // - 打包版（Electron 加载 file:// 或 Capacitor 的 https://localhost 空端口）：指向 Cloudflare Pages 绝对地址
+  // - 覆盖开关（V1.1，测试用）：
+  //   ① localStorage 'aid_api_base' = 自定义 API 根地址（最高优先级，如 https://ai-detective-staging.pages.dev）
+  //   ② URL 参数 ?env=staging → 指向测试服（网页版/打包版都有效）
   let apiUrl = url;
-  const isPacked = location.protocol === 'file:'
-    || (location.hostname === 'localhost' && location.port === '');
-  if (isPacked) {
-    apiUrl = 'https://ai-detective-game.pages.dev' + url;
+  const override = (() => {
+    try {
+      const ls = localStorage.getItem('aid_api_base');
+      if (ls) return ls.replace(/\/+$/, '');
+    } catch (e) {}
+    const m = /[?&]env=(staging|local|prod)/.exec(location.search || '');
+    if (m) {
+      if (m[1] === 'staging') return 'https://ai-detective-staging.pages.dev';
+      if (m[1] === 'local') return 'http://localhost:8899';
+    }
+    return null;
+  })();
+  if (override) {
+    apiUrl = override + url;
+  } else {
+    const isPacked = location.protocol === 'file:'
+      || (location.hostname === 'localhost' && location.port === '');
+    if (isPacked) {
+      apiUrl = 'https://ai-detective-game.pages.dev' + url;
+    }
   }
   // Capacitor (Android)：用原生 HTTP 插件绕过 WebView CORS（仅打包版）
   if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorHttp) {

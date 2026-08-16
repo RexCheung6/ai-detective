@@ -236,7 +236,7 @@ corsJson(obj, status)     // JSON 响应 + Access-Control-Allow-Origin: *
 corsPreflight()           // OPTIONS → 204 + CORS 头
 ```
 
-5 个函数全部接入（chat.js 在 body 解析前处理 OPTIONS）。
+4 个函数全部接入（chat.js 在 body 解析前处理 OPTIONS）。
 
 ### 5.4 关键词线索触发（chat.js）
 
@@ -519,6 +519,8 @@ wrangler pages deploy public --project-name ai-detective-game --commit-dirty=tru
 - 本地 `wrangler dev` 直连 localhost LM Studio，**不走隧道**，测不出公网问题
 - staging 公网可访问，手机也能实测；部署/回滚与生产互不影响
 
+> ⚠️ **模型层不隔离**：staging 与生产共用**同一个隧道、同一个 LM Studio、同一个 key**。在 staging 上跑 chat 验证时会和在线玩家争抢同一个本地模型实例（LM Studio 单模型并发排队）。staging 适合做**功能/链路验证**，不适合做压测或长时间占用。
+
 ### 11.2 测试服部署
 
 ```bash
@@ -768,4 +770,4 @@ wrangler pages deploy public --project-name ai-detective-game --commit-dirty=tru
 **V1.0 已知边界**：
 - 打包版（Electron/Capacitor）需联网 + 本机 LM Studio 运行才能游玩
 - 免费 trycloudflare 隧道 URL 重启会变（守护自动处理，可能有 1-2 分钟切换窗口）
-- 公共 API 暂无按 IP 限流（可用 KV 计数器补，见"可选改进"）
+- 公共 API 暂无按 IP 限流。**限流方案（如需要）**：重新创建 KV namespace，在 chat.js 里按 `CF-Connecting-IP` 做每分钟计数器（`kv.get` + 递增 + `expirationTtl: 60`），超限返回 429。属 V1.1 及以后的可选项。

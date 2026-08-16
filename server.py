@@ -61,7 +61,8 @@ def load_case(case_id: str) -> dict:
 
 
 def public_case(case: dict, mode: str = "normal") -> dict:
-    """脱敏：只返回玩家该知道的信息。mode=hard 时应用反转真相的关键线索重排"""
+    """脱敏：只返回玩家该知道的信息。mode=hard 时应用反转真相的关键线索重排。
+    ⚠️ 必须与 functions/api/_shared.js 的 publicCase 保持字段一致（双后端对拍）"""
     hm = case.get("hard_mode") if mode == "hard" else None
     key_set = set(hm["key_clues"]) if hm else None
     overrides = (hm or {}).get("clue_overrides", {})
@@ -72,6 +73,7 @@ def public_case(case: dict, mode: str = "normal") -> dict:
         "intro": case["intro"],
         "scene": case["scene"],
         "time_limit_hint": case.get("time_limit_hint", ""),
+        "victim": case.get("victim", ""),
         "suspects": [
             {
                 "id": s["id"],
@@ -82,6 +84,7 @@ def public_case(case: dict, mode: str = "normal") -> dict:
                 "appearance": s["appearance"],
                 "personality": s["personality"],
                 "opening_line": s["opening_line"],
+                "background": s.get("background", ""),
                 "clues_available": s["clues_available"],
                 "suggested_questions": s.get("suggested_questions", []),
             }
@@ -100,10 +103,32 @@ def public_case(case: dict, mode: str = "normal") -> dict:
 # ---------- Prompt 组装 ----------
 
 
+def _clue_title(clue: dict, overrides: dict) -> str:
+    """线索标题（应用 hard 模式覆盖；兼容字符串或 {title,desc} 结构）"""
+    raw = overrides.get(clue["id"])
+    if isinstance(raw, dict) and raw.get("title"):
+        return raw["title"]
+    return clue["title"]
+
+
+def _clue_desc(clue: dict, overrides: dict) -> str:
+    """线索描述（应用 hard 模式覆盖；兼容字符串或 {title,desc} 结构）"""
+    raw = overrides.get(clue["id"])
+    if isinstance(raw, str):
+        return raw
+    if isinstance(raw, dict) and raw.get("desc"):
+        return raw["desc"]
+    return clue["desc"]
+
+
 def build_system_prompt(case: dict, suspect: dict, mode: str = "normal") -> str:
     lies_text = "\n".join(
         f"- 话题「{l['topic']}」：你必须撒谎说「{l['lie']}」。真相是「{l['truth']}」，但绝不能承认。"
         for l in suspect["lies"]
+    )
+    # 全部涉案人员清单（与 _shared.js 的 suspectLines 保持一致）
+    suspect_lines = "\n".join(
+        f"- {s['id']}（{s['name']}, {s['role']}）" for s in case["suspects"]
     )
     # 困难模式：注入反转真相提示（如果有该嫌疑人的反转设定）
     hm_extra = ""
@@ -112,8 +137,10 @@ def build_system_prompt(case: dict, suspect: dict, mode: str = "normal") -> str:
         extra = hm.get("suspect_extra", {}).get(suspect["id"], "")
         if extra:
             hm_extra = f"\n\n【困难模式·本案件特殊设定（必须遵守）】\n{extra}"
+    # hard 模式线索覆盖（与 _shared.js 一致；兼容 {id: "字符串desc"} 或 {id: {title, desc}}）
+    hm_overrides = (case.get("hard_mode", {}) or {}).get("clue_overrides", {}) if mode == "hard" else {}
     clues_text = "\n".join(
-        f"- {c['title']}：{c['desc']}"
+        f"- {_clue_title(c, hm_overrides)}：{_clue_desc(c, hm_overrides)}"
         for c in case["clues"] if c["id"] in suspect["clues_available"]
     )
     return f"""你正在扮演一名角色扮演游戏中的嫌疑人。你是「{suspect['name']}」，{suspect['role']}，{suspect['age']}岁。
@@ -149,6 +176,9 @@ def build_system_prompt(case: dict, suspect: dict, mode: str = "normal") -> str:
 
 可揭示线索：
 {clues_text}
+
+【全部涉案人员】
+{suspect_lines}
 
 输出格式（严格 JSON，不要输出其他任何内容）：
 {{"reply": "你的回答", "mood": "calm|nervous|angry|evasive|sad", "reveals_clue": ["线索ID数组，没有则[]"]}}"""

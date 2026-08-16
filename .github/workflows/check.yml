@@ -1,0 +1,76 @@
+name: Quality Checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    name: 语法检查 + 双后端对拍
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # ---------- 1. 语法检查（全离线） ----------
+      - name: JS 语法检查（Cloudflare Functions）
+        run: |
+          for f in functions/api/*.js; do node --check "$f" || exit 1; done
+          echo "✅ functions/api/*.js 语法通过"
+
+      - name: 前端 JS 语法检查
+        run: |
+          python3 - <<'EOF'
+          import re
+          html = open('public/index.html').read()
+          js = re.search(r'<script>(.*?)</script>', html, re.S).group(1)
+          open('/tmp/front.js', 'w').write(js)
+          EOF
+          node --check /tmp/front.js
+          echo "✅ public/index.html 内嵌 JS 语法通过"
+
+      - name: Python 语法检查
+        run: |
+          python3 -m py_compile server.py tests/prompt_parity.py
+          echo "✅ server.py / tests 语法通过"
+
+      - name: Bash 语法检查（隧道守护）
+        run: bash -n tunnel/check_tunnel.sh && echo "✅ check_tunnel.sh 语法通过"
+
+      # ---------- 2. 双后端对拍（全离线，不用 LLM） ----------
+      - name: 双后端 prompt/public_case 对拍
+        run: python3 tests/prompt_parity.py
+        # 对拍 4案 × 4嫌疑人 × 2模式 的 prompt + public_case 字段一致性
+
+      # ---------- 3. 案件 JSON 完整性 ----------
+      - name: 案件 JSON 字段完整性
+        run: |
+          python3 - <<'EOF'
+          import json
+          from pathlib import Path
+          for cid in ['manor', 'station', 'magic', 'nightclub']:
+              d = json.loads(Path(f'cases/{cid}.json').read_text())
+              assert 'truth' in d and 'hard_mode' in d, f'{cid} 缺 truth/hard_mode'
+              assert len(d['suspects']) == 4, f'{cid} 嫌疑人应为 4'
+              for s in d['suspects']:
+                  for k in ['id', 'name', 'role', 'secret', 'lies', 'clues_available', 'background']:
+                      assert s.get(k), f'{cid}/{s["id"]} 缺 {k}'
+              for c in d['clues']:
+                  assert c.get('trigger_keywords'), f'{cid}/{c["id"]} 缺 trigger_keywords'
+          print('✅ 4 案件 JSON 完整性通过')
+          EOF
+
+      # ---------- 4. staging 冒烟（仅 main 分支；/api/cases 等无鉴权，无需 secrets） ----------
+      - name: staging API 冒烟测试
+        if: github.ref == 'refs/heads/main'
+        run: |
+          curl -sf --max-time 30 "https://ai-detective-staging.pages.dev/api/cases" | python3 -c "import sys,json; d=json.load(sys.stdin); assert len(d)==4, d; print('✅ staging /api/cases 4 案件')"
+          curl -sf --max-time 30 "https://ai-detective-staging.pages.dev/api/case?id=manor&mode=normal" | python3 -c "import sys,json; d=json.load(sys.stdin); assert all(s.get('background') for s in d['suspects']), '缺 background'; print('✅ staging /api/case background 完整')"

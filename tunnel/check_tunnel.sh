@@ -65,10 +65,22 @@ if [ "$HTTP_CODE" = "401" ] || [ "$HTTP_CODE" = "200" ]; then
         echo "$CURRENT_URL/v1" | wrangler pages secret put LM_BASE_URL --project-name "$PROJ" >> "$LOG_FILE" 2>&1
     done
 
-    echo "[$(date '+%F %T')]   重新部署 Cloudflare Pages（staging + production）…" >> "$LOG_FILE"
+    # 脏工作区保护（V1.1）：production 部署前检查 git 状态。
+    # 若 public/ functions/ cases/ 有未提交改动，说明正在开发中——只同步 staging，跳过 production
+    # （防止半成品代码在隧道重启时被自动部署上线，违反 staging 先行红线）
     cd /Users/rc/project/new/ai-detective || exit 1
+    DIRTY=$(git status --porcelain -- public/ functions/ cases/ 2>/dev/null | wc -l | tr -d ' ')
+    DEPLOY_PROJS="ai-detective-staging"
+    if [ "$DIRTY" = "0" ]; then
+        DEPLOY_PROJS="ai-detective-staging ai-detective-game"
+        echo "[$(date '+%F %T')] ✅ 工作区干净，同步 staging + production" >> "$LOG_FILE"
+    else
+        echo "[$(date '+%F %T')] ⚠️ 工作区有 $DIRTY 处未提交改动（开发中）→ 仅同步 staging，跳过 production" >> "$LOG_FILE"
+    fi
+
+    echo "[$(date '+%F %T')]   重新部署 Cloudflare Pages（$DEPLOY_PROJS）…" >> "$LOG_FILE"
     ALL_OK=1
-    for PROJ in ai-detective-staging ai-detective-game; do
+    for PROJ in $DEPLOY_PROJS; do
         PROJ_DOMAIN="$PROJ.pages.dev"
         DEPLOY_OK=0
         for attempt in 1 2 3; do

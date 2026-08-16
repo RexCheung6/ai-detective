@@ -20,11 +20,14 @@ export function publicCase(caseData, mode = 'normal') {
   const keySet = hm ? new Set(hm.key_clues) : null;
   const overrides = hm ? (hm.clue_overrides || {}) : {};
   const clues = caseData.clues.map(c => {
-    const o = overrides[c.id] || {};
+    // 兼容两种 clue_overrides 结构：{id: "字符串desc"} 或 {id: {title, desc}}
+    const raw = hm ? ((hm.clue_overrides || {})[c.id]) : null;
+    const o = raw && typeof raw === 'object' ? raw : {};
+    const oDesc = raw && typeof raw === 'string' ? raw : o.desc;
     return {
       id: c.id,
       title: (o.title || c.title),
-      desc: (o.desc || c.desc),
+      desc: (oDesc || c.desc),
       source: c.source || '',
       is_key: keySet ? keySet.has(c.id) : !!c.is_key,
     };
@@ -89,8 +92,11 @@ export function buildSystemPrompt(caseData, suspect, mode = 'normal') {
   const clueTexts = caseData.clues
     .filter(c => available.has(c.id))
     .map(c => {
-      const o = hm ? ((hm.clue_overrides || {})[c.id] || {}) : {};
-      return `- ${o.title || c.title}：${o.desc || c.desc}`;
+      // 兼容两种 clue_overrides 结构：{id: "字符串desc"} 或 {id: {title, desc}}
+      const raw = hm ? ((hm.clue_overrides || {})[c.id]) : null;
+      const o = raw && typeof raw === 'object' ? raw : {};
+      const oDesc = raw && typeof raw === 'string' ? raw : o.desc;
+      return `- ${o.title || c.title}：${oDesc || c.desc}`;
     })
     .join('\n');
 
@@ -149,12 +155,20 @@ export function parseLlmJson(text) {
   return {};
 }
 
-// 环境变量
+// 环境变量（V1.1：fail-fast，缺失时抛明确错误而非静默回退 localhost）
 export function getEnv(env) {
+  const baseUrl = env.LM_BASE_URL || '';
+  const apiKey = env.LM_API_KEY || '';
+  if (!baseUrl) {
+    throw new Error('LM_BASE_URL 未配置：请设置 Cloudflare secret LM_BASE_URL（隧道地址，守护脚本会自动维护）');
+  }
+  if (!apiKey) {
+    throw new Error('LM_API_KEY 未配置：请设置 Cloudflare secret LM_API_KEY');
+  }
   return {
-    baseUrl: env.LM_BASE_URL || 'http://localhost:1234/v1',
+    baseUrl: baseUrl.replace(/\/+$/, ''),
     model: env.LM_MODEL || 'qwen/qwen3.6-35b-a3b',
-    apiKey: env.LM_API_KEY || '',
+    apiKey,
   };
 }
 

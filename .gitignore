@@ -5,7 +5,10 @@
 
 # 依赖
 node_modules/
-netlify/functions/node_modules/
+
+# Netlify 历史遗留（V1.1 起移出 git 跟踪，历史仍可追溯）
+netlify/
+netlify.toml
 
 # Python 缓存
 __pycache__/

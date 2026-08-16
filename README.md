@@ -761,6 +761,11 @@ wrangler pages deploy public --project-name ai-detective-game --commit-dirty=tru
 
 **部署**：staging 验证通过（hard 反转生效、chat 正常）→ 生产部署 + chat 验证通过。git 提交 `3e7b910`。
 
+**安装包 v1.1.0**（git tag `v1.1.0`/`v1.1.1`，2026-08-16 构建）：
+- package.json version 升至 1.1.0（与 tag 对齐，安装包版本号显示 1.1.0）
+- 四平台包：Windows EXE 77M / macOS AppleSilicon DMG 94M / macOS Intel DMG 98M / Android APK 3.9M
+- 内置前端含 staging 覆盖开关（`aid_api_base` / `?env=staging`），打包版也可指向测试服调试
+
 ---
 
 ### v1.0（Cornerstone，2026-08-16）

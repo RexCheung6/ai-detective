@@ -18,7 +18,11 @@ export PATH="$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH"
 CLOUDFLARED="$HOME/bin/cloudflared"
 LOG_FILE="/Users/rc/project/new/ai-detective/tunnel/cloudflared.log"
 URL_FILE="/Users/rc/project/new/ai-detective/tunnel/current_url"
-LM_API_KEY="[REDACTED]"
+# 从项目 .env 读取 LM_API_KEY（绝不硬编码；.env 已被 gitignore）
+LM_API_KEY=""
+if [ -f /Users/rc/project/new/ai-detective/.env ]; then
+    LM_API_KEY=$(grep -E '^LM_API_KEY=' /Users/rc/project/new/ai-detective/.env | head -1 | cut -d= -f2- | tr -d '"'"'"'')
+fi
 mkdir -p /Users/rc/project/new/ai-detective/tunnel
 
 # ---------- 1. 确保 cloudflared 进程在跑 ----------
@@ -65,29 +69,20 @@ if [ "$HTTP_CODE" = "401" ] || [ "$HTTP_CODE" = "200" ]; then
     for attempt in 1 2 3; do
         if wrangler pages deploy public --project-name ai-detective-game --commit-dirty=true 2>&1 | tee -a "$LOG_FILE" | grep -q "Deployment complete"; then
             DEPLOY_OK=1
-            # 部署后验证 chat 链路（secret 传播可能有延迟，最多等 60 秒）
+            # 部署后验证 chat 链路（同步接口，直接等模型回复；secret 传播可能有延迟）
             sleep 3
-            VERIFY_TASK="tunv_$(date +%s)"
-            curl -s --max-time 20 -X POST "https://ai-detective-game.pages.dev/api/chat" \
+            VRES=$(curl -s --max-time 120 -X POST "https://ai-detective-game.pages.dev/api/chat" \
                 -H "Content-Type: application/json" \
-                -d "{\"case_id\":\"manor\",\"suspect_id\":\"butler\",\"question\":\"你好\",\"history\":[],\"owned_clues\":[],\"mode\":\"normal\",\"task_id\":\"$VERIFY_TASK\"}" > /dev/null 2>&1
+                -d '{"case_id":"manor","suspect_id":"butler","question":"你好","history":[],"owned_clues":[],"mode":"normal"}')
             VERIFY_OK=0
-            for v in 1 2 3 4 5 6; do
-                sleep 10
-                VRES=$(curl -s --max-time 20 "https://ai-detective-game.pages.dev/api/chat-result?task=$VERIFY_TASK")
-                if echo "$VRES" | grep -q '"status":"done"'; then
-                    VERIFY_OK=1
-                    break
-                fi
-                if echo "$VRES" | grep -q '"status":"error"'; then
-                    break  # 出错则重试部署
-                fi
-            done
+            if echo "$VRES" | grep -q '"reply"'; then
+                VERIFY_OK=1
+            fi
             if [ "$VERIFY_OK" = "1" ]; then
                 echo "[$(date '+%F %T')] ✅ Cloudflare Pages 已同步新隧道地址（chat 验证通过）" >> "$LOG_FILE"
                 break
             fi
-            echo "[$(date '+%F %T')] ⚠️ 部署后 chat 验证失败（第 $attempt 次），等待后重试部署…" >> "$LOG_FILE"
+            echo "[$(date '+%F %T')] ⚠️ 部署后 chat 验证失败（第 $attempt 次）: $(echo "$VRES" | head -c 120)" >> "$LOG_FILE"
             sleep 10
         else
             echo "[$(date '+%F %T')] ⚠️ Cloudflare Pages 部署失败（第 $attempt 次）！" >> "$LOG_FILE"

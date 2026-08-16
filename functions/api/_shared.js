@@ -56,51 +56,85 @@ export function publicCase(caseData, mode = 'normal') {
 }
 
 // 审问 system prompt（LLM 扮演嫌疑人）
+// ⚠️ 必须与 server.py build_system_prompt 保持行为一致（双后端对拍）
+// 案件 JSON 字段：secret(单数，字符串) / lies(对象数组 {topic,lie,truth}) / motive / clues_available
 export function buildSystemPrompt(caseData, suspect, mode = 'normal') {
   const hm = mode === 'hard' ? caseData.hard_mode : null;
-  const secrets = suspect.secrets || [];
-  const lies = suspect.lies || [];
-  const clueTexts = caseData.clues.map(c => {
-    const overrides = hm ? ((hm.clue_overrides || {})[c.id] || {}) : {};
-    return `- ${c.id}「${overrides.title || c.title}」: ${overrides.desc || c.desc}`;
-  }).join('\n');
-  const suspectLines = caseData.suspects.map(s => `- ${s.id}（${s.name}, ${s.role}）`).join('\n');
 
+  // 秘密：JSON 字段是单数 secret（字符串）
+  const secretText = suspect.secret || suspect.secrets || '';
+
+  // 谎言：对象数组 {topic, lie, truth}，正确格式化
+  const lies = Array.isArray(suspect.lies) ? suspect.lies : [];
   let lieBlock = lies.length
-    ? `你撒的谎（绝不能承认，除非被铁证揭穿）:\n${lies.map(l => `- ${l}`).join('\n')}`
+    ? lies.map(l => `- 话题「${l.topic}」：你必须撒谎说「${l.lie}」。真相是「${l.truth}」，但绝不能承认。`).join('\n')
     : '你基本诚实，但有所隐瞒。';
+  // 困难模式：覆盖该嫌疑人的谎言
   if (hm) {
     const hardLies = (hm.suspect_lie_overrides || {})[suspect.id] || [];
     if (hardLies.length) {
-      lieBlock = `你撒的谎（绝不能承认，除非被铁证揭穿）:\n${hardLies.map(l => `- ${l}`).join('\n')}`;
+      lieBlock = `- ${hardLies.join('\n- ')}`;
     }
   }
 
-  return `你是「${caseData.title}」中的角色 ${suspect.name}（${suspect.role}），正在接受侦探（玩家）的审问。
+  // 困难模式：注入反转真相提示
+  let hmExtra = '';
+  if (hm) {
+    const extra = (hm.suspect_extra || {})[suspect.id] || '';
+    if (extra) hmExtra = `\n\n【困难模式·本案件特殊设定（必须遵守）】\n${extra}`;
+  }
 
-【案件背景】
+  // 线索：只注入当前嫌疑人 clues_available 的线索（防全量泄漏），并应用困难模式覆盖
+  const available = new Set(suspect.clues_available || []);
+  const clueTexts = caseData.clues
+    .filter(c => available.has(c.id))
+    .map(c => {
+      const o = hm ? ((hm.clue_overrides || {})[c.id] || {}) : {};
+      return `- ${o.title || c.title}：${o.desc || c.desc}`;
+    })
+    .join('\n');
+
+  const suspectLines = caseData.suspects.map(s => `- ${s.id}（${s.name}, ${s.role}）`).join('\n');
+
+  return `你正在扮演一名角色扮演游戏中的嫌疑人。你是「${suspect.name}」，${suspect.role}，${suspect.age || '?'}岁。
+外貌：${suspect.appearance || ''}
+性格：${suspect.personality || ''}
+说话风格：${suspect.speech || ''}
+
+案件背景：
 ${caseData.intro}
+案发现场：${caseData.scene || ''}
+${caseData.time_limit_hint || ''}
+
+你的角色秘密（绝对不能承认，被追问时要转移话题或反问）：
+${secretText}
+
+你必须遵守的谎言（玩家问到相关话题时，必须按谎言回答，永远不能透露真相）：
+${lieBlock}
+
+你的作案动机（你本人可能是清白的，但动机要合理）：
+${suspect.motive || ''}
+${hmExtra}
+角色行为准则：
+1. 用第一人称、口语化回答，符合你的性格和说话风格。**每轮只回答 1-2 句话（30字以内），绝不长篇大论。**
+2. 你是嫌疑人，不是侦探——永远不要主动说"我是凶手"或"某某是凶手"。
+3. 被问到你撒谎的话题时，按谎言回答，被追问得紧就紧张、回避、反问。
+4. 玩家展示证据或戳破你谎言时，你会慌乱/愤怒/沉默。
+
+线索揭示规则（重要，行动点有限，线索必须珍贵）：
+- 你拥有以下可揭示的线索。**只有当玩家的问题直接击中关键点（明确问到相关细节）时**，才把线索 id 填入 reveals_clue。
+- 泛泛的问题（"你在哪""你看到了什么"）不会触发线索——玩家必须追问具体细节才会松口。
+- 每次回答最多揭示 1 条新线索，不要把全部线索一口气倒出来。
+- 线索在回答正文中自然带出（比如提到"我当时看到/听到/知道……"），同时把 id 写进 reveals_clue。
+
+可揭示线索：
+${clueTexts || '（无）'}
 
 【全部涉案人员】
 ${suspectLines}
 
-【你的秘密（绝不能主动说出）】
-${secrets.map(s => `- ${s}`).join('\n')}
-
-【你的谎言】
-${lieBlock}
-
-【案件线索表（玩家可能已掌握，你不知对方知道多少）】
-${clueTexts}
-
-【扮演规则】
-1. 你是一个有血有肉的嫌疑人，有情绪、有戒备心。用第一人称说话。
-2. 回答要口语化、自然，像真实对话，长度不超过30字。可以用"嗯…""这个…"等口头语，偶尔简短。
-3. 你在撒谎时会有细微破绽（支吾、转移话题、反问），但绝不主动承认。
-4. 玩家问到的内容如果涉及你的秘密或谎言，你试图回避或编造，但不要编造案件没有的事实。
-5. 除非玩家直接说出对应线索的关键细节（例如"有人看到你进了书房"），你才被迫承认或解释。
-6. 绝不透露"我是凶手"或任何直接定罪的话。
-7. 用中文回答。`;
+输出格式（严格 JSON，不要输出其他任何内容）：
+{"reply": "你的回答", "mood": "calm|nervous|angry|evasive|sad", "reveals_clue": ["线索ID数组，没有则[]"]}`;
 }
 
 // LLM 返回 JSON 解析容错

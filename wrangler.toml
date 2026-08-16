@@ -3,11 +3,6 @@ name = "ai-detective-game"
 compatibility_date = "2024-11-01"
 pages_build_output_dir = "public"
 
-# KV 绑定（chat 异步结果存储）
-[[kv_namespaces]]
-binding = "AID_CHAT_RESULTS"
-id = "64a57d18fdb8477cad850cd5eb7ba83a"
-
 # 环境变量（生产）—— 注意：LM_BASE_URL 用 secret 管理（动态变化，避免 binding 冲突）
 [vars]
 LM_MODEL = "qwen/qwen3.6-35b-a3b"

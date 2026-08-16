@@ -85,8 +85,7 @@ if [ "$HTTP_CODE" = "401" ] || [ "$HTTP_CODE" = "200" ]; then
         DEPLOY_OK=0
         for attempt in 1 2 3; do
             if wrangler pages deploy public --project-name "$PROJ" --commit-dirty=true 2>&1 | tee -a "$LOG_FILE" | grep -q "Deployment complete"; then
-                DEPLOY_OK=1
-                # 部署后验证 chat 链路（同步接口，直接等模型回复；secret 传播可能有延迟）
+                # 部署成功（但 chat 验证通过才真正算成功；DEPLOY_OK 只在验证通过时置 1）
                 sleep 3
                 VRES=$(curl -s --max-time 120 -X POST "https://$PROJ_DOMAIN/api/chat" \
                     -H "Content-Type: application/json" \
@@ -96,6 +95,7 @@ if [ "$HTTP_CODE" = "401" ] || [ "$HTTP_CODE" = "200" ]; then
                     VERIFY_OK=1
                 fi
                 if [ "$VERIFY_OK" = "1" ]; then
+                    DEPLOY_OK=1
                     echo "[$(date '+%F %T')] ✅ $PROJ 已同步新隧道地址（chat 验证通过）" >> "$LOG_FILE"
                     break
                 fi
@@ -107,12 +107,13 @@ if [ "$HTTP_CODE" = "401" ] || [ "$HTTP_CODE" = "200" ]; then
             fi
         done
         if [ "$DEPLOY_OK" != "1" ]; then
+            echo "[$(date '+%F %T')] ⚠️ $PROJ 同步失败（部署或 chat 验证未通过）" >> "$LOG_FILE"
             ALL_OK=0
         fi
     done
     if [ "$ALL_OK" != "1" ]; then
-        # 同步未全部通过：**不**更新 current_url，下次运行会重新触发同步（避免永久跳过）
-        echo "[$(date '+%F %T')] ⚠️ 双项目同步未全部通过，保留旧 URL 待下次重试" >> "$LOG_FILE"
+        # 同步未全部通过：删除 current_url，下次运行（120s 后）重新触发同步（避免永久跳过）
+        echo "[$(date '+%F %T')] ⚠️ 双项目同步未全部通过，删除 current_url 待下次重试" >> "$LOG_FILE"
         rm -f "$URL_FILE"
     fi
 else

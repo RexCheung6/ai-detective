@@ -54,11 +54,11 @@
 │                 Cloudflare Pages（生产后端，免费）                  │
 │  ┌────────────────────────────────────────────────────────────┐  │
 │  │ Pages Functions（/api/*）                                    │  │
-│  │  cases / case / chat / chat-result / accuse                │  │
-│  │  chat 用 waitUntil 异步：立即 202 → 后台跑 LLM → 存 KV        │  │
+│  │  cases / case / chat / accuse                              │  │
+│  │  chat 同步执行：组装 prompt → 隧道 → 本地 LM Studio 直接返回 │  │
 │  └──────────────┬─────────────────────────────────────────────┘  │
 │                 │ 环境变量 LM_BASE_URL / LM_API_KEY / LM_MODEL    │
-│                 ▼  （KV namespace AID_CHAT_RESULTS 存异步结果）     │
+│                 ▼                                                 │
 └──────────────────────────────┬──────────────────────────────────┘
                                │ HTTPS（Cloudflare Tunnel，免费）
                                ▼
@@ -77,8 +77,7 @@
 |------|------|
 | LLM 不创作事实 | 防止模型自由发挥导致案情矛盾/泄底；所有剧情内容服务端 JSON 预置 |
 | 前端零密钥 | 密钥只在服务端（Cloudflare secret）与本地隧道；玩家无法提取 |
-| chat 异步化（202 + 轮询） | Cloudflare Functions 同步限制 30s，本地模型响应 15-50s，必须后台执行 |
-| KV 替代 Netlify Blobs | Cloudflare 生态；异步结果暂存供前端轮询 |
+| chat 同步化 | Workers 30s 限制是 CPU 时间，等待 I/O 不消耗；同步更简单且不会 30s 被掐断（早期 waitUntil+KV+轮询方案已退役） |
 | 隧道自动同步 | trycloudflare 免费隧道 URL 每次重启都会变；守护脚本自动更新 secret + 重新部署 |
 | 关键词触发线索 | LLM 输出 JSON 字段（reveals_clue）不可靠，关键词匹配 100% 可靠 |
 
@@ -95,8 +94,7 @@ ai-detective/
 │       ├── _shared.js      #   共享：案件加载 / publicCase 脱敏 / prompt 组装 / CORS
 │       ├── cases.js        #   GET /api/cases — 案件列表（含嫌疑人数量）
 │       ├── case.js         #   GET /api/case?id=&mode= — 单个案件脱敏数据
-│       ├── chat.js         #   POST /api/chat — 异步审问（202 + waitUntil + KV）
-│       ├── chat-result.js  #   GET /api/chat-result?task= — 轮询异步结果
+│       ├── chat.js         #   POST /api/chat — 同步审问（直接调本地模型返回）
 │       └── accuse.js       #   POST /api/accuse — 指控裁决（服务端判定）
 ├── cases/                  # ★ 案件数据（4 案 16 嫌疑人，唯一事实来源）
 │   ├── manor.json          #   布莱克伍德庄园谋杀案（1930s 英国）
@@ -107,7 +105,7 @@ ai-detective/
 ├── electron/
 │   └── main.js             # Electron 主进程（打包版桌面端）
 ├── capacitor.config.ts     # Capacitor 配置（Android 打包）
-├── wrangler.toml           # Cloudflare Pages 部署配置（KV 绑定 + vars）
+├── wrangler.toml           # Cloudflare Pages 部署配置（vars）
 ├── netlify/                # 【历史遗留】Netlify Functions（已弃用，勿改）
 ├── netlify.toml            # 【历史遗留】Netlify 配置（已弃用）
 ├── tunnel/
@@ -154,9 +152,8 @@ screen-auth ──注册/登录──▶ screen-intro（案件列表/案件详�
 
 | 函数 | 职责 |
 |------|------|
-| `fetchJSON(url, opts)` | **API 统一入口**：打包版（file:// 或 Capacitor）自动指向 `https://ai-detective-game.pages.dev`；网页版用相对路径 `/api/*`；30s 超时；网络错误返回 `{__network_error}` 标记 |
-| `sendMsg()` | 发送提问：扣 1 行动点 → POST `/api/chat`（带 task_id）→ 轮询 `/api/chat-result` → 渲染回答 → 处理新线索 |
-| `pollChatResult()` | 轮询异步结果：150s 常规 + 60s 延长；超时/失败自动 `refundAP(1)` 退还点数 |
+| `fetchJSON(url, opts)` | **API 统一入口**：打包版（file:// 或 Capacitor）自动指向 `https://ai-detective-game.pages.dev`；网页版用相对路径 `/api/*`；120s 超时（同步审问等待）；网络错误返回 `{__network_error}` 标记 |
+| `sendMsg()` | 发送提问：扣 1 行动点 → POST `/api/chat`（同步等待回复）→ 渲染回答 → 处理新线索 |
 | `startInterrogation(id)` | 进入审问：按嫌疑人独立历史（`histories[suspectId]`），切换/返回不丢失 |
 | `renderRelations()` | 案件详情页"涉案人员"区块：名字 + 关系 + 背景故事（可引导可误导，不点破动机） |
 | `spendAP(n)` / `refundAP(n)` | 行动点增减，上限 10，失败自动退还 |
@@ -200,26 +197,28 @@ difficulty      // 'normal' | 'hard'
 |------|------|------|------|
 | `cases.js` | `/api/cases` | GET | 案件列表（id/title/era/intro/suspect_count） |
 | `case.js` | `/api/case?id=&mode=` | GET | 单个案件**脱敏数据**（无 truth/secrets/lies） |
-| `chat.js` | `/api/chat` | POST | 审问：**立即 202** → `waitUntil` 后台调 LLM → 存 KV |
-| `chat-result.js` | `/api/chat-result?task=` | GET | 轮询异步结果（done/error/pending） |
+| `chat.js` | `/api/chat` | POST | 审问：**同步执行**，组装 prompt → 隧道 → 本地 LM Studio → 直接返回 |
 | `accuse.js` | `/api/accuse` | POST | 指控裁决（服务端，mode=hard 用反转真相） |
 
-### 5.2 异步 chat 机制（关键架构）
+> ⚠️ 曾经存在 `chat-result.js`（异步轮询），已随同步化删除。
+
+### 5.2 chat 同步机制（关键架构）
 
 ```js
-export const onRequest = async ({ request, env, waitUntil }) => {
-  // ...解析 body，取 task_id
-  waitUntil(runChatTask(body, taskId, env));   // 后台执行，不阻塞响应
-  return corsJson({ task_id: taskId }, 202);   // 立即返回 202
+export const onRequest = async ({ request, env }) => {
+  // 同步执行：组装 prompt → fetch 隧道 → 本地 LM Studio → 直接返回结果
+  const llmResp = await fetch(envCfg.baseUrl + '/chat/completions', { ... });
+  return corsJson({ reply, mood, new_clues, backend });
 };
 ```
 
-1. 前端 POST `/api/chat`（带自生成 `task_id`）→ 立即收到 `202 {task_id}`
-2. `waitUntil` 后台执行 `runChatTask`：组装 prompt → fetch 隧道 → 本地 LM Studio
-3. 结果写入 **KV namespace `AID_CHAT_RESULTS`**（key = task_id）
-4. 前端轮询 `/api/chat-result?task=<task_id>` 直到 `status: done|error`
+1. 前端 POST `/api/chat` → 后端同步调本地模型（15-50s）→ **直接返回** `{reply, mood, new_clues}`
+2. 前端 fetch 超时 120s（`AbortSignal.timeout(120000)` 覆盖模型最慢响应）
 
-> ⚠️ **教训**：Cloudflare waitUntil 的 promise 必须 `await` 链完整，fire-and-forget 会被回收（Netlify 时代踩过的坑）。
+> ⚠️ **为什么同步可行**：Cloudflare Workers 的 30s 限制是 **CPU 时间**；fetch 等待网络 I/O **不消耗 CPU 配额**，因此同步等待 15-50s 完全合法。
+> 早期用 `waitUntil()` 异步方案（202 + KV + 轮询）有两个问题：waitUntil 只能延长执行最多 30s（一半请求会被掐断），且引入 KV/task_id 一整条复杂度。**已整体退役**：`chat-result.js`、KV 绑定、前端轮询已删除。
+
+> ⚠️ **历史教训（Netlify 时代）**：传给后台任务的 Promise 内部所有异步必须 `await` 且 try/catch，未处理的 rejection 会导致任务静默失败。
 
 ### 5.3 CORS 处理（_shared.js）
 
@@ -321,6 +320,9 @@ function checkKeywordTriggers(caseData, question) {
 
 ### 7.1 prompt 组装（_shared.js `buildSystemPrompt`）
 
+> ⚠️ 必须与 server.py `build_system_prompt` 保持行为一致（双后端对拍，防漂移）。
+> 字段来源：`secret`（JSON 单数字符串）、`lies`（对象数组 `{topic, lie, truth}`，格式化后注入）、`speech`/`motive`/`clues_available` 均注入；**线索只注入当前嫌疑人 `clues_available` 的**（防全量泄漏）。
+
 ```
 你是「案件名」中的角色 {name}（{role}），{age}岁。
 外貌：...
@@ -337,7 +339,7 @@ function checkKeywordTriggers(caseData, question) {
   3. 被戳破谎言时紧张/回避/反问
   4. 玩家展示证据时慌乱/愤怒/沉默
 线索揭示规则：只有玩家直接击中关键点才揭示线索，每次最多 1 条
-可揭示线索：{clues_available}
+可揭示线索：{clues_available 过滤后的线索}
 输出格式（严格 JSON）：{"reply": "...", "mood": "calm|nervous|angry|evasive|sad", "reveals_clue": ["id"]}
 ```
 
@@ -358,13 +360,11 @@ function checkKeywordTriggers(caseData, question) {
 ### 7.3 链路时序
 
 ```
-玩家提问 → POST /api/chat (202, ~0.1s)
-        → Cloudflare waitUntil 后台:
-            buildSystemPrompt → fetch {LM_BASE_URL}/chat/completions
-            → cloudflared 隧道 → Mac 本地 LM Studio :1234
-            → 模型推理 15-50s（35B MoE）
-            → 结果写 KV
-        → 前端轮询 /api/chat-result（每 2.5s）
+玩家提问 → POST /api/chat（同步）
+        → buildSystemPrompt → fetch {LM_BASE_URL}/chat/completions
+        → cloudflared 隧道 → Mac 本地 LM Studio :1234
+        → 模型推理 15-50s（35B MoE）
+        → 直接返回 {reply, mood, new_clues}
         → 前端渲染回答 + 新线索弹窗
 ```
 
@@ -453,13 +453,11 @@ rm -f tunnel/current_url && bash tunnel/check_tunnel.sh
 name = "ai-detective-game"
 pages_build_output_dir = "public"
 
-[[kv_namespaces]]
-binding = "AID_CHAT_RESULTS"
-id = "64a57d18fdb8477cad850cd5eb7ba83a"
-
 [vars]
 LM_MODEL = "qwen/qwen3.6-35b-a3b"   # 注意：LM_BASE_URL 用 secret 管理（动态变化）
 ```
+
+> ⚠️ 早期曾用 `[[kv_namespaces]]`（AID_CHAT_RESULTS）支撑异步 chat，已随同步化删除。
 
 ### 10.2 部署命令
 
@@ -467,13 +465,11 @@ LM_MODEL = "qwen/qwen3.6-35b-a3b"   # 注意：LM_BASE_URL 用 secret 管理（�
 # 登录
 wrangler login
 
-# 创建 KV（首次）
-wrangler kv namespace create AID_CHAT_RESULTS
-
 # 创建项目（首次）
 wrangler pages project create ai-detective-game --production-branch main
+wrangler pages project create ai-detective-staging --production-branch main
 
-# 设置 secret（敏感值，用 stdin 传入避免进 shell 历史）
+# 设置 secret（敏感值，用 stdin 传入避免进 shell 历史；staging + production 都要）
 echo "https://xxx.trycloudflare.com/v1" | wrangler pages secret put LM_BASE_URL --project-name ai-detective-game
 echo "<key>" | wrangler pages secret put LM_API_KEY --project-name ai-detective-game
 
@@ -500,9 +496,55 @@ wrangler pages deploy public --project-name ai-detective-game --commit-dirty=tru
 
 ---
 
-## 十一、安装包构建（GitHub Actions）
+## 十一、测试服（staging）与发布流程
 
-### 11.1 三平台
+### 11.1 双环境
+
+| 环境 | 项目名 | 地址 | 用途 |
+|------|--------|------|------|
+| **生产** | `ai-detective-game` | `https://ai-detective-game.pages.dev` | 玩家使用，永不直接改 |
+| **测试** | `ai-detective-staging` | `https://ai-detective-staging.pages.dev` | 开发优化先行验证 |
+
+**为什么选独立 Pages 项目而不是本地 `wrangler dev`**：
+- staging 与生产**完全同构**（同代码/同隧道/同 CORS/同限流），能复现一切真实公网链路问题（530、隧道变化、CORS）
+- 本地 `wrangler dev` 直连 localhost LM Studio，**不走隧道**，测不出公网问题
+- staging 公网可访问，手机也能实测；部署/回滚与生产互不影响
+
+### 11.2 测试服部署
+
+```bash
+# 部署测试服（改动代码后先跑这里）
+wrangler pages deploy public --project-name ai-detective-staging --commit-dirty=true
+
+# 设置 secrets（仅首次/隧道变化时）
+echo "https://xxx.trycloudflare.com/v1" | wrangler pages secret put LM_BASE_URL --project-name ai-detective-staging
+echo "<key>" | wrangler pages secret put LM_API_KEY --project-name ai-detective-staging
+
+# 验证 staging chat 链路
+curl -s --max-time 120 -X POST "https://ai-detective-staging.pages.dev/api/chat" \
+  -H "Content-Type: application/json" \
+  -d '{"case_id":"manor","suspect_id":"butler","question":"你好","history":[],"owned_clues":[],"mode":"normal"}'
+```
+
+### 11.3 标准发布流程（staging 先行）
+
+```
+1. 修改代码（prompt/案件/功能）
+2. 部署测试服：wrangler pages deploy public --project-name ai-detective-staging
+3. 在 staging 上验证：全流程试玩 / API 测试 / chat 链路
+4. 验证无问题 → 部署生产：wrangler pages deploy public --project-name ai-detective-game
+5. （隧道 URL 变化时，守护脚本自动同步两个项目，见 9.3）
+```
+
+> ⚠️ **红线**：不要在未经过 staging 验证的情况下直接部署生产——玩家的游玩体验依赖生产稳定性。
+
+### 11.4 隧道守护双项目同步
+
+`check_tunnel.sh` 在隧道 URL 变化时**同时同步 staging + production**（两个项目都更新 secret + 部署 + chat 自验证）。任一个同步失败都会**删除 current_url**，下次运行自动重试（不会永久跳过）。
+
+
+
+### 11.5 三平台
 
 | 平台 | 技术 | 产物 |
 |------|------|------|
@@ -510,7 +552,7 @@ wrangler pages deploy public --project-name ai-detective-game --commit-dirty=tru
 | macOS | electron-builder + DMG | `.dmg`（arm64 94MB / x64 98MB） |
 | Android | Capacitor 7 + Gradle | `.apk`（debug，3.9MB） |
 
-### 11.2 触发方式
+### 11.6 触发方式
 
 ```yaml
 on:
@@ -521,7 +563,7 @@ on:
 
 > 已**暂停自动构建**（push main 不再触发），避免每次提交都消耗 Actions 分钟数。
 
-### 11.3 手动构建
+### 11.7 手动构建
 
 ```bash
 # 打 tag 触发（或 GitHub 页面手动 Run workflow）
@@ -531,7 +573,7 @@ git tag v1.1.0 && git push origin v1.1.0
 gh run download <run_id> --repo RexCheung6/ai-detective --dir release/artifacts
 ```
 
-### 11.4 打包版联网链路
+### 11.8 打包版联网链路
 
 ```
 安装包 UI（file:// 或 https://localhost）
@@ -545,7 +587,7 @@ gh run download <run_id> --repo RexCheung6/ai-detective --dir release/artifacts
 
 ## 十二、用户系统与进度保存
 
-全部**纯前端 localStorage**（无服务器账号体系）。
+全部**纯前端 localStorage**（⚠️ **纯本地存档**，无真实鉴权——SHA-256 加盐哈希可被直接篡改/清空，仅用于区分玩家与保存进度，不适合作为安全凭证）。
 
 | 存储键 | 内容 |
 |--------|------|
@@ -591,11 +633,13 @@ gh run download <run_id> --repo RexCheung6/ai-detective --dir release/artifacts
 3. 若 URL 变了：手动 `rm -f tunnel/current_url && bash tunnel/check_tunnel.sh` 触发同步
 4. 同步后等 1 分钟（守护会 chat 自验证），再测
 
-### 13.2 chat 长时间 pending / 超时
+### 13.2 chat 超时 / 报错
 
+- **先查 staging**：访问 `https://ai-detective-staging.pages.dev` 复现——测试服与生产同构，能快速区分"代码问题"还是"生产环境问题"
 - LM Studio 未运行 / 模型未加载
 - Mac 休眠（检查 caffeinate）
-- 模型推理慢（35B MoE 正常 15-50s，等待提示已做）
+- 模型推理慢（35B MoE 正常 15-50s；前端 fetch 超时 120s，超时会退款）
+- 隧道问题（见 13.1）
 
 ### 13.3 打包版无法登录/注册
 
@@ -645,8 +689,14 @@ bash -n tunnel/check_tunnel.sh
 # 2. 本地起服务测试
 python3 server.py   # http://localhost:8899
 
-# 3. 生产验证（Chat 全链路）
-# 用 curl 模拟前端：POST /api/chat → 轮询 /api/chat-result → 应 15-50s 返回 done
+# 3. 测试服验证（Chat 全链路）
+# 先部署 staging，再 curl 验证：POST /api/chat → 应 15-50s 直接返回 reply
+curl -s --max-time 120 -X POST "https://ai-detective-staging.pages.dev/api/chat" \
+  -H "Content-Type: application/json" \
+  -d '{"case_id":"manor","suspect_id":"butler","question":"你好","history":[],"owned_clues":[],"mode":"normal"}'
+
+# 4. 验证通过后部署生产
+wrangler pages deploy public --project-name ai-detective-game --commit-dirty=true
 ```
 
 ---
@@ -656,8 +706,7 @@ python3 server.py   # http://localhost:8899
 | 层 | 技术 | 版本/要点 |
 |----|------|-----------|
 | 前端 | 原生 HTML/CSS/JS | 单文件，无构建 |
-| 云后端 | Cloudflare Pages Functions | wrangler 4.x |
-| 异步存储 | Cloudflare KV | namespace `AID_CHAT_RESULTS` |
+| 云后端 | Cloudflare Pages Functions | wrangler 4.x；生产 + 测试双项目 |
 | 本地模型 | LM Studio | `localhost:1234`，`qwen/qwen3.6-35b-a3b`（MoE） |
 | 隧道 | cloudflared | Quick Tunnel，带 key 认证 |
 | 桌面打包 | Electron | v33.x，`webSecurity: false` |

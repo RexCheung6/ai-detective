@@ -55,43 +55,53 @@ if [ "$HTTP_CODE" = "401" ] || [ "$HTTP_CODE" = "200" ]; then
         exit 0
     fi
 
-    # ---------- 4. URL 变了（新隧道）→ 同步 Cloudflare Pages ----------
+    # ---------- 4. URL 变了（新隧道）→ 同步 Cloudflare Pages（staging + production 双项目） ----------
     echo "[$(date '+%F %T')] 🔄 隧道 URL 变化: $(cat "$URL_FILE" 2>/dev/null) → $CURRENT_URL" >> "$LOG_FILE"
     echo "$CURRENT_URL" > "$URL_FILE"
 
-    echo "[$(date '+%F %T')]   更新 Cloudflare 变量 LM_BASE_URL…" >> "$LOG_FILE"
+    echo "[$(date '+%F %T')]   更新 Cloudflare 变量 LM_BASE_URL（staging + production）…" >> "$LOG_FILE"
     export PATH="$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH"
-    echo "$CURRENT_URL/v1" | wrangler pages secret put LM_BASE_URL --project-name ai-detective-game >> "$LOG_FILE" 2>&1
+    for PROJ in ai-detective-staging ai-detective-game; do
+        echo "$CURRENT_URL/v1" | wrangler pages secret put LM_BASE_URL --project-name "$PROJ" >> "$LOG_FILE" 2>&1
+    done
 
-    echo "[$(date '+%F %T')]   重新部署 Cloudflare Pages…" >> "$LOG_FILE"
+    echo "[$(date '+%F %T')]   重新部署 Cloudflare Pages（staging + production）…" >> "$LOG_FILE"
     cd /Users/rc/project/new/ai-detective || exit 1
-    DEPLOY_OK=0
-    for attempt in 1 2 3; do
-        if wrangler pages deploy public --project-name ai-detective-game --commit-dirty=true 2>&1 | tee -a "$LOG_FILE" | grep -q "Deployment complete"; then
-            DEPLOY_OK=1
-            # 部署后验证 chat 链路（同步接口，直接等模型回复；secret 传播可能有延迟）
-            sleep 3
-            VRES=$(curl -s --max-time 120 -X POST "https://ai-detective-game.pages.dev/api/chat" \
-                -H "Content-Type: application/json" \
-                -d '{"case_id":"manor","suspect_id":"butler","question":"你好","history":[],"owned_clues":[],"mode":"normal"}')
-            VERIFY_OK=0
-            if echo "$VRES" | grep -q '"reply"'; then
-                VERIFY_OK=1
+    ALL_OK=1
+    for PROJ in ai-detective-staging ai-detective-game; do
+        PROJ_DOMAIN="$PROJ.pages.dev"
+        DEPLOY_OK=0
+        for attempt in 1 2 3; do
+            if wrangler pages deploy public --project-name "$PROJ" --commit-dirty=true 2>&1 | tee -a "$LOG_FILE" | grep -q "Deployment complete"; then
+                DEPLOY_OK=1
+                # 部署后验证 chat 链路（同步接口，直接等模型回复；secret 传播可能有延迟）
+                sleep 3
+                VRES=$(curl -s --max-time 120 -X POST "https://$PROJ_DOMAIN/api/chat" \
+                    -H "Content-Type: application/json" \
+                    -d '{"case_id":"manor","suspect_id":"butler","question":"你好","history":[],"owned_clues":[],"mode":"normal"}')
+                VERIFY_OK=0
+                if echo "$VRES" | grep -q '"reply"'; then
+                    VERIFY_OK=1
+                fi
+                if [ "$VERIFY_OK" = "1" ]; then
+                    echo "[$(date '+%F %T')] ✅ $PROJ 已同步新隧道地址（chat 验证通过）" >> "$LOG_FILE"
+                    break
+                fi
+                echo "[$(date '+%F %T')] ⚠️ $PROJ 部署后 chat 验证失败（第 $attempt 次）: $(echo "$VRES" | head -c 120)" >> "$LOG_FILE"
+                sleep 10
+            else
+                echo "[$(date '+%F %T')] ⚠️ $PROJ 部署失败（第 $attempt 次）！" >> "$LOG_FILE"
+                sleep 10
             fi
-            if [ "$VERIFY_OK" = "1" ]; then
-                echo "[$(date '+%F %T')] ✅ Cloudflare Pages 已同步新隧道地址（chat 验证通过）" >> "$LOG_FILE"
-                break
-            fi
-            echo "[$(date '+%F %T')] ⚠️ 部署后 chat 验证失败（第 $attempt 次）: $(echo "$VRES" | head -c 120)" >> "$LOG_FILE"
-            sleep 10
-        else
-            echo "[$(date '+%F %T')] ⚠️ Cloudflare Pages 部署失败（第 $attempt 次）！" >> "$LOG_FILE"
-            sleep 10
+        done
+        if [ "$DEPLOY_OK" != "1" ]; then
+            ALL_OK=0
         fi
     done
-    if [ "$DEPLOY_OK" != "1" ]; then
-        echo "[$(date '+%F %T')] ⚠️ 3 次部署均未通过验证，保留 URL 待下次重试" >> "$LOG_FILE"
-        echo "$CURRENT_URL" > "$URL_FILE"
+    if [ "$ALL_OK" != "1" ]; then
+        # 同步未全部通过：**不**更新 current_url，下次运行会重新触发同步（避免永久跳过）
+        echo "[$(date '+%F %T')] ⚠️ 双项目同步未全部通过，保留旧 URL 待下次重试" >> "$LOG_FILE"
+        rm -f "$URL_FILE"
     fi
 else
     echo "[$(date '+%F %T')] ❌ 隧道探测失败 (HTTP $HTTP_CODE)，尝试重启 cloudflared" >> "$LOG_FILE"

@@ -3,7 +3,14 @@
 > **AI Detective** — 嫌疑人由你的本地大模型实时扮演的交互推理游戏。
 > 玩家选择案件 → 审问嫌疑人（LLM 实时角色扮演）→ 收集线索（行动点限制）→ 指控凶手（服务端裁决）。
 
-![架构](https://img.shields.io/badge/前端-HTML%2FCSS%2FJS-blue) ![后端](https://img.shields.io/badge/后端-Cloudflare%20Pages%20Functions-orange) ![LLM](https://img.shields.io/badge/LLM-本地LM%20Studio-green) ![打包](https://img.shields.io/badge/打包-Electron%20%2B%20Capacitor-purple)
+![版本](https://img.shields.io/badge/版本-V1.0%20Cornerstone-8A2BE2) ![架构](https://img.shields.io/badge/前端-HTML%2FCSS%2FJS-blue) ![后端](https://img.shields.io/badge/后端-Cloudflare%20Pages%20Functions-orange) ![LLM](https://img.shields.io/badge/LLM-本地LM%20Studio-green) ![打包](https://img.shields.io/badge/打包-Electron%20%2B%20Capacitor-purple)
+
+> 📌 **本文档版本：V1.0（Cornerstone）** — 记录 2026-08-16 时的架构与代码实现。
+>
+> **文档维护约定**：
+> - 本文档描述的架构/代码以 **V1.0** 为基准快照，**后续版本更新时不要修改 1.0 章节内容**；
+> - 新版本上线后，在文末【版本历史】追加新版本章节，只记录**相对当前版本的变化部分**；
+> - 若某章节已随版本变化过时，在该章节顶部加一行 `> ⚠️ 本章节描述 V1.0 实现，V2.0 起已变更（见版本历史）`，而非改写原内容。
 
 ---
 
@@ -19,10 +26,12 @@
 - [八、本地开发后端（server.py）](#八本地开发后端serverpy)
 - [九、隧道与守护（cloudflared + launchd）](#九隧道与守护cloudflared--launchd)
 - [十、部署（Cloudflare Pages + wrangler）](#十部署cloudflare-pages--wrangler)
-- [十一、安装包构建（GitHub Actions）](#十一安装包构建github-actions)
+- [十一、测试服（staging）与发布流程](#十一测试服staging与发布流程)
 - [十二、用户系统与进度保存](#十二用户系统与进度保存)
 - [十三、常见问题与排障](#十三常见问题与排障)
 - [十四、开发约定与安全红线](#十四开发约定与安全红线)
+- [附：技术栈速查](#附技术栈速查)
+- [附：版本历史](#附版本历史)
 
 ---
 
@@ -713,3 +722,50 @@ wrangler pages deploy public --project-name ai-detective-game --commit-dirty=tru
 | 移动打包 | Capacitor | v7，`androidScheme: https` |
 | CI | GitHub Actions | 仅 tag/手动触发 |
 | 本地开发 | Python http.server | 端口 8899，零依赖 |
+
+---
+
+## 附：版本历史
+
+> **约定**：每个版本追加一个新章节（按时间倒序，最新在最上），只描述相对上一版本的变化。
+> V1.0 为 cornerstone，其内容固化在本文档正文各章节中，后续版本不修改正文，仅在此追加。
+
+---
+
+### v1.1+（未来版本占位）
+
+<!-- 新版本在此处追加：
+### vX.Y（日期）
+- 变更 1
+- 变更 2
+-->
+
+---
+
+### v1.0（Cornerstone，2026-08-16）
+
+**定位**：功能完整、双环境（测试/生产）就绪、架构稳定固化的首个基准版本。本文档全部正文章节即为此版本快照。
+
+**核心特性**：
+- 4 个案件（庄园/太空站/魔术师/百乐门），16 名嫌疑人，普通 + 困难（真相反转）双模式
+- LLM 实时角色扮演审问（本地 LM Studio `qwen/qwen3.6-35b-a3b`），真相/秘密/谎言服务端 JSON 预置，LLM 只表演不创作
+- 行动点系统（10 点，提问 -1/指控 -2，失败自动退还）+ 关键词线索触发（100% 可靠）+ 服务端指控裁决
+- 涉案人员背景故事展示（开局可见，可引导可误导，动机留给玩家猜）
+- 按嫌疑人独立对话历史，切换/返回/重登不丢失
+
+**架构要点（详见正文）**：
+- 前端单文件 `public/index.html`（原生 HTML/CSS/JS，零构建）
+- 后端 Cloudflare Pages Functions（`/api/*`），**chat 同步执行**（Workers 30s 限制是 CPU 时间，等待 I/O 不消耗）
+- 生产 `ai-detective-game.pages.dev` + 测试 `ai-detective-staging.pages.dev` 双环境，**staging 先行**发布流程
+- cloudflared 隧道 + launchd 三层守护（隧道/健康检查/防休眠），URL 变化自动同步双项目（secret + 部署 + chat 自验证）
+- 用户系统纯前端 localStorage（SHA-256 加盐，纯本地存档）
+- 三平台安装包（Electron Windows/macOS + Capacitor Android），GitHub Actions 仅 tag/手动触发
+
+**关键配置**：
+- 环境变量：`LM_BASE_URL`（secret，动态）/ `LM_API_KEY`（secret，2026-08-16 已轮换）/ `LM_MODEL`
+- git 历史已重写：清除曾泄露的 LM API key；`.env` / `.wrangler` / `netlify/` 均不入库
+
+**V1.0 已知边界**：
+- 打包版（Electron/Capacitor）需联网 + 本机 LM Studio 运行才能游玩
+- 免费 trycloudflare 隧道 URL 重启会变（守护自动处理，可能有 1-2 分钟切换窗口）
+- 公共 API 暂无按 IP 限流（可用 KV 计数器补，见"可选改进"）

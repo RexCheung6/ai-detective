@@ -1,6 +1,6 @@
 {
   "name": "ai-detective",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "AI 侦探 —— 嫌疑人由你的本地大模型实时扮演的交互推理游戏",
   "author": "AI Detective",
   "main": "electron/main.js",
@@ -30,14 +30,20 @@
       "output": "release"
     },
     "mac": {
-      "target": ["dmg"],
+      "target": [
+        "dmg"
+      ],
       "category": "public.app-category.games"
     },
     "win": {
-      "target": ["nsis"]
+      "target": [
+        "nsis"
+      ]
     },
     "linux": {
-      "target": ["AppImage"],
+      "target": [
+        "AppImage"
+      ],
       "category": "Game"
     }
   }

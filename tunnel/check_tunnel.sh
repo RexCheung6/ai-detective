@@ -4,9 +4,14 @@
 # 职责：
 #   1. 检查 cloudflared 进程，不在则启动
 #   2. 探测隧道可用性（带 API key，401 = 在线且有认证 = 正常）
-#   3. 隧道 URL 变化时，自动更新 Netlify LM_BASE_URL 并重新部署
+#   3. 隧道 URL 变化时，自动更新 Cloudflare Pages secret 并重新部署
+#   4. 部署后 chat 链路自验证，失败自动重试（根治 secret 传播竞态）
 # 由 launchd 每 120 秒调用一次
 # ============================================================
+
+# launchd 环境不注入 HOME（launchctl getenv HOME 为空），必须兜底：
+# 否则 wrangler 会找 /.wrangler/cache 而失败，导致隧道同步中断
+export HOME="${HOME:-/Users/rc}"
 
 export PATH="$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH"
 

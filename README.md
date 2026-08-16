@@ -744,6 +744,25 @@ wrangler pages deploy public --project-name ai-detective-game --commit-dirty=tru
 
 ---
 
+### v1.1（2026-08-16）
+
+**核心变更**：
+
+1. **双后端对拍固化**（`tests/prompt_parity.py`）：遍历 4 案 × 4 嫌疑人 × 2 模式，对比 server.py 与 _shared.js 的 prompt 渲染 + public_case 字段。**挖出并修复 3 处 hard 模式漂移**：
+   - server.py prompt 缺【全部涉案人员】区块（已补）
+   - **生产端 hard 线索反转文案失效**（`clue_overrides` 实际是 `{id: "字符串"}` 结构，_shared.js 按对象读 → 反转不生效；已兼容两种结构）
+   - server.py 的 hard 模式也不应用线索覆盖（已补 `_clue_title`/`_clue_desc`）
+2. **server.py `public_case` 补齐 `background` + `victim`**（与 _shared.js 对齐，本地试玩涉案人员背景故事不再为空）
+3. **前端 staging 覆盖开关**：`localStorage['aid_api_base']`（自定义根地址，最高优先级）或 URL `?env=staging|local` → 打包版/网页版都能指向测试服，无需重新打包
+4. **隧道守护脏工作区保护**：production 自动部署前检查 `git status --porcelain -- public/ functions/ cases/`，有未提交改动（开发中）→ **只同步 staging 并告警跳过 production**，防止半成品上线
+5. **getEnv fail-fast**：`LM_BASE_URL`/`LM_API_KEY` 缺失时抛明确错误（不再静默回退 localhost 造成"连本地"假成功）
+6. **check.yml 质量门**（GitHub Actions）：JS/Python/Bash 语法检查 + 案件 JSON 完整性 + **双后端对拍** + staging API 冒烟，全部离线（不用 LLM），push 自动跑
+7. **netlify/ 移出 git 跟踪**（历史遗留，git 历史仍可追溯）
+
+**部署**：staging 验证通过（hard 反转生效、chat 正常）→ 生产部署 + chat 验证通过。git 提交 `3e7b910`。
+
+---
+
 ### v1.0（Cornerstone，2026-08-16）
 
 **定位**：功能完整、双环境（测试/生产）就绪、架构稳定固化的首个基准版本。本文档全部正文章节即为此版本快照。
